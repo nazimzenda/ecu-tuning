@@ -1,0 +1,15 @@
+node_modules
+npm-debug.log
+uploads
+*.sqlite
+*.sqlite3
+.env
+.git
+.gitignore
+.DS_Store
+*.log
+README.md
+*.md
+.vscode
+.idea
+

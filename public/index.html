@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ECU Tuning Service - Professional File Modification</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <div class="nav-brand">
+                <span class="logo-icon">⚙️</span>
+                <span class="logo-text">ECU Tuning Pro</span>
+            </div>
+            <div class="nav-links">
+                <a href="/">Home</a>
+                <a href="/admin">Admin</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <section class="hero">
+            <div class="container">
+                <h1 class="hero-title">Professional ECU File Modification Service</h1>
+                <p class="hero-subtitle">Expert tuning services for your vehicle's ECU. Upload your file, we'll modify it with precision.</p>
+            </div>
+        </section>
+
+        <section class="upload-section">
+            <div class="container">
+                <div class="upload-card">
+                    <h2 class="card-title">Upload Your ECU File</h2>
+                    <form id="uploadForm" class="upload-form">
+                        <div class="form-group">
+                            <label for="customerName">Your Name</label>
+                            <input type="text" id="customerName" name="customerName" placeholder="John Doe" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="customerEmail">Email Address</label>
+                            <input type="email" id="customerEmail" name="customerEmail" placeholder="john@example.com" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="customerPhone">WhatsApp Number (Optional)</label>
+                            <input type="tel" id="customerPhone" name="customerPhone" placeholder="+1234567890 (with country code)" pattern="^\+[1-9]\d{1,14}$">
+                            <small style="color: var(--text-dark); font-size: 0.85rem; margin-top: 0.25rem; display: block;">
+                                Include country code (e.g., +1234567890). We'll notify you via WhatsApp when your file is ready!
+                            </small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="vehicleInfo">Vehicle Information</label>
+                            <input type="text" id="vehicleInfo" name="vehicleInfo" placeholder="e.g., 2015 VW Golf TDI" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="service">Select Service</label>
+                            <select id="service" name="service" required>
+                                <option value="">Choose a service...</option>
+                                <option value="DPF Removal">DPF/FPF Delete - Remove Particulate Filter</option>
+                                <option value="EGR Delete">EGR Off - Disable Exhaust Gas Recirculation</option>
+                                <option value="DTC Removal">DTC Removal - Delete Specific Fault Codes</option>
+                                <option value="AdBlue Delete">AdBlue/SCR Delete - Remove Urea System</option>
+                                <option value="VMAX Remove">VMAX Remove - Delete Speed Limiter</option>
+                                <option value="Stage 1 Tune">Stage 1 Tune - Basic Performance Upgrade</option>
+                                <option value="Custom">Custom Modification - Write Your Specific Request</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group" id="customServiceGroup" style="display: none;">
+                            <label for="customServiceDescription">Custom Service Description *</label>
+                            <textarea 
+                                id="customServiceDescription" 
+                                name="customServiceDescription" 
+                                rows="4" 
+                                placeholder="Please describe in detail what modifications you need. For example: 'Remove DPF and EGR, increase boost to 1.8 bar, remove speed limiter, and optimize fuel injection maps for Stage 2 performance...'"
+                                style="padding: 12px 16px; background: var(--dark-gray); border: 2px solid var(--border-color); border-radius: 6px; color: var(--text-light); font-size: 1rem; font-family: inherit; resize: vertical; width: 100%; transition: all 0.3s;"
+                            ></textarea>
+                            <small style="color: var(--text-dark); font-size: 0.85rem; margin-top: 0.25rem; display: block;">
+                                Be as specific as possible about the modifications you need
+                            </small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="ecuFile" class="file-label">
+                                <span class="file-label-text">Choose ECU File</span>
+                                <span class="file-label-hint">(.bin, .hex, .ori, .winols, .dam)</span>
+                            </label>
+                            <input type="file" id="ecuFile" name="ecuFile" accept=".bin,.hex,.ori,.winols,.dam" required>
+                            <div class="file-info" id="fileInfo"></div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary" id="submitBtn">
+                            <span class="btn-text">Upload & Submit Order</span>
+                            <span class="btn-loader" id="btnLoader" style="display: none;">⏳</span>
+                        </button>
+                    </form>
+
+                    <div id="message" class="message"></div>
+                </div>
+            </div>
+        </section>
+
+        <section class="services-section">
+            <div class="container">
+                <h2 class="section-title">Our Services</h2>
+                <div class="services-grid">
+                    <div class="service-card">
+                        <div class="service-icon">🔥</div>
+                        <h3>DPF/FPF Delete</h3>
+                        <p>Remove particulate filter regeneration cycles and disable monitoring</p>
+                    </div>
+                    <div class="service-card">
+                        <div class="service-icon">💨</div>
+                        <h3>EGR Delete</h3>
+                        <p>Close exhaust gas recirculation valves and disable monitoring</p>
+                    </div>
+                    <div class="service-card">
+                        <div class="service-icon">🔧</div>
+                        <h3>DTC Removal</h3>
+                        <p>Eliminate specific fault codes and prevent check engine lights</p>
+                    </div>
+                    <div class="service-card">
+                        <div class="service-icon">⚡</div>
+                        <h3>Stage 1 Tune</h3>
+                        <p>Performance upgrade with optimized fuel injection and boost</p>
+                    </div>
+                    <div class="service-card">
+                        <div class="service-icon">🚫</div>
+                        <h3>AdBlue Delete</h3>
+                        <p>Remove urea system and related monitoring functions</p>
+                    </div>
+                    <div class="service-card">
+                        <div class="service-icon">🏁</div>
+                        <h3>VMAX Remove</h3>
+                        <p>Delete speed limiter for unrestricted performance</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="process-section">
+            <div class="container">
+                <h2 class="section-title">How It Works</h2>
+                <div class="process-steps">
+                    <div class="step">
+                        <div class="step-number">1</div>
+                        <h3>Upload Your File</h3>
+                        <p>Send us your original ECU file (.bin, .hex, .ori, etc.)</p>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">2</div>
+                        <h3>We Process It</h3>
+                        <p>Our experts modify your file using specialized tuning software</p>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">3</div>
+                        <h3>Download Modified File</h3>
+                        <p>Receive your modified file ready to flash to your vehicle</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; 2024 ECU Tuning Pro. Professional ECU File Modification Service.</p>
+        </div>
+    </footer>
+
+    <script src="app.js"></script>
+</body>
+</html>
+
