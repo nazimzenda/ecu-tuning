@@ -85,22 +85,28 @@ const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123'; // CHANGE THIS 
 const emailUser = process.env.SMTP_USER || process.env.EMAIL_USER || process.env.GMAIL_USER || '';
 const emailPass = process.env.SMTP_PASS || process.env.EMAIL_PASS || process.env.EMAIL_PASSWORD || process.env.GMAIL_PASS || '';
 
+// Use Gmail service directly for better compatibility with cloud environments
 const emailConfig = {
-  host: process.env.SMTP_HOST || 'smtp.gmail.com',
-  port: parseInt(process.env.SMTP_PORT || '587'),
-  secure: process.env.SMTP_SECURE === 'true', // true for 465, false for other ports
+  service: 'gmail',  // Use service instead of host/port for better compatibility
   auth: {
     user: emailUser,
     pass: emailPass
+  },
+  // Connection settings for cloud environments
+  connectionTimeout: 30000,  // 30 seconds
+  greetingTimeout: 30000,
+  socketTimeout: 60000,
+  // TLS settings
+  tls: {
+    rejectUnauthorized: false  // Allow self-signed certificates
   }
 };
 
 // Log email configuration status at startup
 console.log('📧 Email configuration:');
-console.log('   - Host:', emailConfig.host);
-console.log('   - Port:', emailConfig.port);
+console.log('   - Service: Gmail');
 console.log('   - User:', emailUser ? `${emailUser.substring(0, 3)}***@***` : '❌ NOT SET');
-console.log('   - Pass:', emailPass ? '✅ SET (hidden)' : '❌ NOT SET');
+console.log('   - Pass:', emailPass ? `✅ SET (${emailPass.length} chars)` : '❌ NOT SET');
 
 // Create email transporter
 const emailTransporter = nodemailer.createTransport(emailConfig);
@@ -554,7 +560,11 @@ async function startServer() {
       if (!emailConfig.auth.user || !emailConfig.auth.pass) {
         console.log('⚠️ Email not configured. Set SMTP_USER and SMTP_PASS environment variables.');
       } else {
-        console.log('✅ Email configured');
+        console.log('✅ Email configured - testing connection...');
+        // Test email connection
+        emailTransporter.verify()
+          .then(() => console.log('✅ Email connection verified successfully!'))
+          .catch(err => console.log('⚠️ Email connection test failed:', err.message));
       }
       
       if (!twilioClient) {
