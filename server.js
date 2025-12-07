@@ -81,15 +81,26 @@ const upload = multer({
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123'; // CHANGE THIS IN PRODUCTION!
 
 // Email configuration (set via environment variables)
+// Supports multiple variable name formats for flexibility
+const emailUser = process.env.SMTP_USER || process.env.EMAIL_USER || process.env.GMAIL_USER || '';
+const emailPass = process.env.SMTP_PASS || process.env.EMAIL_PASS || process.env.EMAIL_PASSWORD || process.env.GMAIL_PASS || '';
+
 const emailConfig = {
   host: process.env.SMTP_HOST || 'smtp.gmail.com',
   port: parseInt(process.env.SMTP_PORT || '587'),
   secure: process.env.SMTP_SECURE === 'true', // true for 465, false for other ports
   auth: {
-    user: process.env.SMTP_USER || '', // Your email
-    pass: process.env.SMTP_PASS || '' // Your email password or app password
+    user: emailUser,
+    pass: emailPass
   }
 };
+
+// Log email configuration status at startup
+console.log('📧 Email configuration:');
+console.log('   - Host:', emailConfig.host);
+console.log('   - Port:', emailConfig.port);
+console.log('   - User:', emailUser ? `${emailUser.substring(0, 3)}***@***` : '❌ NOT SET');
+console.log('   - Pass:', emailPass ? '✅ SET (hidden)' : '❌ NOT SET');
 
 // Create email transporter
 const emailTransporter = nodemailer.createTransport(emailConfig);
@@ -400,8 +411,9 @@ async function sendFileReadyNotifications(order, filePath) {
 // Function to send email with file attachment
 async function sendEmailNotification(order, filePath) {
   try {
-    if (!emailConfig.auth.user || !emailConfig.auth.pass) {
-      console.log('⚠️ Email not configured. Set SMTP_USER and SMTP_PASS environment variables.');
+    if (!emailUser || !emailPass) {
+      console.log('⚠️ Email not configured. Set SMTP_USER/SMTP_PASS or EMAIL_USER/EMAIL_PASSWORD environment variables.');
+      console.log('   Current values - User:', emailUser ? 'SET' : 'EMPTY', '| Pass:', emailPass ? 'SET' : 'EMPTY');
       return;
     }
 
