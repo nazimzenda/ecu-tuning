@@ -411,9 +411,20 @@ async function sendFileReadyNotifications(order, filePath) {
 // Function to send email with file attachment
 async function sendEmailNotification(order, filePath) {
   try {
+    console.log('📧 ========== EMAIL NOTIFICATION START ==========');
+    console.log('📧 Order ID:', order?.id);
+    console.log('📧 Customer Email:', order?.customer_email);
+    console.log('📧 SMTP User:', emailUser ? `${emailUser.substring(0, 5)}...` : 'NOT SET');
+    console.log('📧 SMTP Pass:', emailPass ? `SET (${emailPass.length} chars)` : 'NOT SET');
+    
     if (!emailUser || !emailPass) {
       console.log('⚠️ Email not configured. Set SMTP_USER/SMTP_PASS or EMAIL_USER/EMAIL_PASSWORD environment variables.');
       console.log('   Current values - User:', emailUser ? 'SET' : 'EMPTY', '| Pass:', emailPass ? 'SET' : 'EMPTY');
+      return;
+    }
+    
+    if (!order?.customer_email) {
+      console.log('⚠️ No customer email in order, skipping email notification');
       return;
     }
 
@@ -474,10 +485,14 @@ async function sendEmailNotification(order, filePath) {
     }
 
     console.log('📧 Sending email to:', order.customer_email);
+    console.log('📧 Mail options:', JSON.stringify({ to: mailOptions.to, subject: mailOptions.subject, hasAttachment: !!mailOptions.attachments }));
+    
     const info = await emailTransporter.sendMail(mailOptions);
     console.log('✅ Email sent successfully:', info.messageId);
+    console.log('📧 ========== EMAIL NOTIFICATION END ==========');
   } catch (error) {
     console.error('❌ Error sending email:', error.message);
+    console.error('❌ Full error:', error);
     throw error; // Re-throw to be caught by parent
   }
 }
