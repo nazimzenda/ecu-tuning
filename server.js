@@ -282,9 +282,11 @@ app.post('/api/orders/:id/modified', requireAdmin, upload.single('modifiedFile')
     // Get order details for notifications
     const order = await db.getOrder(req.params.id);
     
-    // Send email and WhatsApp notifications
+    // Send email and WhatsApp notifications (non-blocking - don't wait)
     if (order) {
-      await sendFileReadyNotifications(order, modifiedFilePath);
+      sendFileReadyNotifications(order, modifiedFilePath).catch(err => {
+        console.error('Notification error (non-blocking):', err.message);
+      });
     }
 
     res.json({ success: true, message: 'Modified file uploaded successfully' });
