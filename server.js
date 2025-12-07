@@ -370,18 +370,30 @@ app.delete('/api/orders/:id', requireAdmin, async (req, res) => {
 
 // Function to send file ready notifications
 async function sendFileReadyNotifications(order, filePath) {
+  console.log('📤 Sending notifications for order:', order.id);
+  console.log('📧 Customer email:', order.customer_email);
+  console.log('📱 Customer phone:', order.customer_phone);
+  console.log('📁 File path:', filePath);
+  
   try {
     // Send email notification with file attachment
     if (order.customer_email) {
       await sendEmailNotification(order, filePath);
+    } else {
+      console.log('⚠️ No customer email provided, skipping email notification');
     }
 
     // Send WhatsApp notification
     if (order.customer_phone) {
       await sendWhatsAppNotification(order);
+    } else {
+      console.log('⚠️ No customer phone provided, skipping WhatsApp notification');
     }
+    
+    console.log('✅ Notifications completed for order:', order.id);
   } catch (error) {
-    console.error('Error sending notifications:', error);
+    console.error('❌ Error sending notifications:', error.message);
+    throw error;
   }
 }
 
@@ -393,45 +405,68 @@ async function sendEmailNotification(order, filePath) {
       return;
     }
 
+    // Check if file exists before trying to attach
+    const fileExists = await fs.pathExists(filePath);
+    if (!fileExists) {
+      console.error('❌ Modified file not found at:', filePath);
+      // Try alternative path from order
+      if (order.modified_file_path && await fs.pathExists(order.modified_file_path)) {
+        filePath = order.modified_file_path;
+      } else {
+        console.error('❌ Cannot find modified file to attach. Sending email without attachment.');
+      }
+    }
+
+    const modifiedFileName = order.modified_file_name || order.modified_stored_file_name || 'modified_file.bin';
+    const serviceName = order.service || 'ECU Tuning Service';
+    const vehicleInfo = order.vehicle_info || 'Vehicle';
+    const originalFileName = order.original_file_name || 'original_file.bin';
+
     const mailOptions = {
       from: `"ECU Tuning Pro" <${emailConfig.auth.user}>`,
       to: order.customer_email,
       subject: `✅ Your Modified ECU File is Ready - Order #${String(order.id).padStart(3, '0')}`,
       html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #FFD700;">Your Modified ECU File is Ready!</h2>
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #1a1a1a; color: #fff; padding: 20px; border-radius: 10px;">
+          <h2 style="color: #FFD700;">🎉 Your Modified ECU File is Ready!</h2>
           <p>Hello ${order.customer_name || 'Customer'},</p>
           <p>We're pleased to inform you that your ECU file modification has been completed.</p>
           
-          <div style="background: #2d2d2d; padding: 20px; border-radius: 8px; margin: 20px 0;">
-            <h3 style="color: #FFD700; margin-top: 0;">Order Details:</h3>
-            <p><strong>Order ID:</strong> #${String(order.id).padStart(3, '0')}</p>
-            <p><strong>Service:</strong> ${order.service}</p>
-            <p><strong>Vehicle:</strong> ${order.vehicle_info}</p>
-            <p><strong>Original File:</strong> ${order.original_file_name}</p>
-            <p><strong>Modified File:</strong> ${order.modified_file_name || 'modified_' + order.original_file_name}</p>
+          <div style="background: #2d2d2d; padding: 20px; border-radius: 8px; margin: 20px 0; color: #fff;">
+            <h3 style="color: #FFD700; margin-top: 0;">📋 Order Details:</h3>
+            <p style="color: #fff;"><strong>Order ID:</strong> #${String(order.id).padStart(3, '0')}</p>
+            <p style="color: #fff;"><strong>Service:</strong> ${serviceName}</p>
+            <p style="color: #fff;"><strong>Vehicle:</strong> ${vehicleInfo}</p>
+            <p style="color: #fff;"><strong>Original File:</strong> ${originalFileName}</p>
+            <p style="color: #fff;"><strong>Modified File:</strong> ${modifiedFileName}</p>
           </div>
 
           <p>Your modified file is attached to this email. Please download it and flash it to your vehicle's ECU.</p>
           
           <p style="color: #888; font-size: 12px; margin-top: 30px;">
             If you have any questions, please contact us.<br>
-            ECU Tuning Pro
+            <strong style="color: #FFD700;">ECU Tuning Pro</strong>
           </p>
         </div>
-      `,
-      attachments: [
-        {
-          filename: order.modified_file_name || 'modified_' + order.original_file_name,
-          path: filePath
-        }
-      ]
+      `
     };
 
+    // Only add attachment if file exists
+    if (await fs.pathExists(filePath)) {
+      mailOptions.attachments = [
+        {
+          filename: modifiedFileName,
+          path: filePath
+        }
+      ];
+    }
+
+    console.log('📧 Sending email to:', order.customer_email);
     const info = await emailTransporter.sendMail(mailOptions);
     console.log('✅ Email sent successfully:', info.messageId);
   } catch (error) {
-    console.error('❌ Error sending email:', error);
+    console.error('❌ Error sending email:', error.message);
+    throw error; // Re-throw to be caught by parent
   }
 }
 
