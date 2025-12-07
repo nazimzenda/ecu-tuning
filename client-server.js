@@ -2,11 +2,15 @@ const express = require('express');
 const path = require('path');
 
 const CLIENT_PORT = process.env.CLIENT_PORT || 3000;
-const API_BASE_URL =
-  process.env.CLIENT_API_BASE_URL ||
-  process.env.API_BASE_URL ||
-  process.env.API_URL ||
-  `http://localhost:${process.env.API_PORT || process.env.PORT || 4000}`;
+
+// In production (Railway), use empty string so API calls go to same origin via Nginx
+// In development, use explicit localhost URL
+const API_BASE_URL = process.env.NODE_ENV === 'production'
+  ? ''
+  : (process.env.CLIENT_API_BASE_URL ||
+     process.env.API_BASE_URL ||
+     process.env.API_URL ||
+     `http://localhost:${process.env.API_PORT || 4000}`);
 
 const clientApp = express();
 
