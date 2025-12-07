@@ -25,11 +25,12 @@ RUN mkdir -p uploads/modified
 # Create Nginx run directory
 RUN mkdir -p /run/nginx
 
-# Expose ports for Nginx reverse proxy and Node servers
-EXPOSE 8080 3000 3001 4000
+# Expose port 8080 for Railway (Nginx reverse proxy)
+EXPOSE 8080
 
 # Set environment to production
 ENV NODE_ENV=production
+ENV PORT=8080
 
 # Start Nginx and all three Node servers
 CMD sh -c "nginx -g 'daemon off;' & node server.js & node client-server.js & node admin-server.js & wait"
