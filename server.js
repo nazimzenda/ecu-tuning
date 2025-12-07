@@ -9,7 +9,8 @@ const twilio = require('twilio');
 const db = require('./db');
 
 const app = express();
-const PORT = process.env.API_PORT || process.env.PORT || 4000;
+// Use API_PORT (4000) - DO NOT use PORT env var as that's for nginx (8080) on Railway
+const PORT = process.env.API_PORT || 4000;
 
 // CORS configuration
 const allowedOrigins = process.env.ALLOWED_ORIGINS

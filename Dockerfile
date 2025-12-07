@@ -32,6 +32,6 @@ EXPOSE 8080
 ENV NODE_ENV=production
 ENV PORT=8080
 
-# Start Nginx and all three Node servers
-CMD sh -c "nginx -g 'daemon off;' & node server.js & node client-server.js & node admin-server.js & wait"
+# Start Nginx and all three Node servers with error output
+CMD sh -c "nginx -t && nginx && sleep 2 && node server.js & node client-server.js & node admin-server.js & wait"
 
