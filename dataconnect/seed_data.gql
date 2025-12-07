@@ -1,0 +1,72 @@
+mutation CreateSeedData @transaction @auth(level: PUBLIC, insecureReason: "This operation is only used to seed the database with initial data and is not intended for production use.") {
+  user_insertMany(data: [
+    {
+      id: "550e8400-e29b-41d4-a716-446655440000",
+      displayName: "demouser1",
+      createdAt: "2024-04-26T12:00:00Z"
+    },
+    {
+      id: "550e8400-e29b-41d4-a716-446655440001",
+      displayName: "demouser2",
+      createdAt: "2024-04-26T12:00:00Z"
+    }
+  ])
+  vehicle_insertMany(data: [
+    {
+      id: "650e8400-e29b-41d4-a716-446655440000",
+      ownerId: "550e8400-e29b-41d4-a716-446655440000",
+      make: "Toyota",
+      model: "Supra",
+      year: 1993,
+      engineType: "2JZ-GTE",
+      createdAt: "2024-04-26T12:00:00Z"
+    },
+    {
+      id: "650e8400-e29b-41d4-a716-446655440001",
+      ownerId: "550e8400-e29b-41d4-a716-446655440001",
+      make: "Nissan",
+      model: "Skyline GT-R",
+      year: 1999,
+      engineType: "RB26DETT",
+      createdAt: "2024-04-26T12:00:00Z"
+    }
+  ])
+  tune_insertMany(data: [
+    {
+      id: "750e8400-e29b-41d4-a716-446655440000",
+      uploaderId: "550e8400-e29b-41d4-a716-446655440000",
+      vehicleId: "650e8400-e29b-41d4-a716-446655440000",
+      name: "Demo Tune 1",
+      tuneVersion: "1.0",
+      fileUrl: "http://example.com/tune1.bin",
+      isPublic: true,
+      createdAt: "2024-04-26T12:00:00Z",
+      updatedAt: "2024-04-26T12:00:00Z"
+    },
+    {
+      id: "750e8400-e29b-41d4-a716-446655440001",
+      uploaderId: "550e8400-e29b-41d4-a716-446655440001",
+      vehicleId: "650e8400-e29b-41d4-a716-446655440001",
+      name: "Demo Tune 2",
+      tuneVersion: "1.0",
+      fileUrl: "http://example.com/tune2.bin",
+      isPublic: true,
+      createdAt: "2024-04-26T12:00:00Z",
+      updatedAt: "2024-04-26T12:00:00Z"
+    }
+  ])
+  comment_insertMany(data: [
+    {
+      authorId: "550e8400-e29b-41d4-a716-446655440000",
+      tuneId: "750e8400-e29b-41d4-a716-446655440000",
+      content: "Example comment from demouser1",
+      createdAt: "2024-04-26T12:00:00Z"
+    },
+    {
+      authorId: "550e8400-e29b-41d4-a716-446655440001",
+      tuneId: "750e8400-e29b-41d4-a716-446655440001",
+      content: "Example comment from demouser2",
+      createdAt: "2024-04-26T12:00:00Z"
+    }
+  ])
+}

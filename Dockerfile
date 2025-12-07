@@ -16,8 +16,8 @@ COPY . .
 # Create uploads directories
 RUN mkdir -p uploads/modified
 
-# Expose port
-EXPOSE 3000
+# Expose ports for API, client, and admin servers
+EXPOSE 3000 3001 4000
 
 # Set environment to production
 ENV NODE_ENV=production

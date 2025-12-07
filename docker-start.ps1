@@ -39,8 +39,8 @@ docker-compose -f docker-compose.yml up -d
 
 Write-Host ""
 Write-Host "✅ Service started!" -ForegroundColor Green
-Write-Host "🌐 Access your app at: http://localhost:3000" -ForegroundColor Cyan
-Write-Host "🔧 Admin panel: http://localhost:3000/admin" -ForegroundColor Cyan
+Write-Host "🌐 Client Portal: http://localhost:3000" -ForegroundColor Cyan
+Write-Host "👨‍💼 Admin Panel: http://localhost:3001" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "📋 Useful commands:" -ForegroundColor Yellow
 Write-Host "  View logs: docker-compose logs -f" -ForegroundColor Gray

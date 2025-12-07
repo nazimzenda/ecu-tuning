@@ -1,37 +1,65 @@
 version: '3.8'
 
 services:
-
-
+  api:
     build: .
-    container_name: ecu-tuning-service
+    container_name: ecu-tuning-api
+    command: node server.js
     ports:
-      - "3000:3000"
+      - "${API_PORT:-4000}:4000"
     environment:
       - NODE_ENV=production
-      - PORT=3000
-      # Admin
+      - API_PORT=4000
       - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin123}
-      # Email (Gmail example)
       - SMTP_HOST=${SMTP_HOST:-smtp.gmail.com}
       - SMTP_PORT=${SMTP_PORT:-587}
       - SMTP_SECURE=${SMTP_SECURE:-false}
       - SMTP_USER=${SMTP_USER:-}
       - SMTP_PASS=${SMTP_PASS:-}
-      # WhatsApp (Twilio)
       - TWILIO_ACCOUNT_SID=${TWILIO_ACCOUNT_SID:-}
       - TWILIO_AUTH_TOKEN=${TWILIO_AUTH_TOKEN:-}
       - TWILIO_WHATSAPP_NUMBER=${TWILIO_WHATSAPP_NUMBER:-whatsapp:+14155238886}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-*}
     volumes:
-      # Persist database
       - ./database.sqlite:/app/database.sqlite
-      # Persist uploads
       - ./uploads:/app/uploads
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/"]
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:4000/"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
+
+  client:
+    build: .
+    container_name: ecu-tuning-client
+    command: node client-server.js
+    ports:
+      - "${CLIENT_PORT:-3000}:3000"
+    environment:
+      - NODE_ENV=production
+      - CLIENT_PORT=3000
+      - CLIENT_API_BASE_URL=${CLIENT_API_BASE_URL:-http://api:4000}
+    depends_on:
+      - api
+    restart: unless-stopped
+
+  admin:
+    build: .
+    container_name: ecu-tuning-admin
+    command: node admin-server.js
+    ports:
+      - "${ADMIN_PORT:-3002}:3002"
+    environment:
+      - NODE_ENV=production
+      - ADMIN_PORT=3002
+      - ADMIN_API_BASE_URL=${ADMIN_API_BASE_URL:-http://api:4000}
+    depends_on:
+      - api
+    restart: unless-stopped
+
+  # 1. Use get_errors to find all problems in the codebase
+  # 2. Use test_failure to check test output if tests failed
+  # 3. Use grep_search to find specific error patterns
 

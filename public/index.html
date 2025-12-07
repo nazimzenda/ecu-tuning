@@ -15,14 +15,13 @@
             </div>
             <div class="nav-links">
                 <a href="/">Home</a>
-                <a href="/admin">Admin</a>
             </div>
         </div>
     </nav>
 
     <main class="main-content">
         <section class="hero">
-            <div class="container">
+            <div class="container" style="position: relative; z-index: 2;">
                 <h1 class="hero-title">Professional ECU File Modification Service</h1>
                 <p class="hero-subtitle">Expert tuning services for your vehicle's ECU. Upload your file, we'll modify it with precision.</p>
             </div>
@@ -106,37 +105,91 @@
 
         <section class="services-section">
             <div class="container">
-                <h2 class="section-title">Our Services</h2>
+                <h2 class="section-title">🔧 Our Premium Services</h2>
+                <p class="section-subtitle">Professional ECU modifications tailored to your vehicle's needs</p>
                 <div class="services-grid">
-                    <div class="service-card">
-                        <div class="service-icon">🔥</div>
-                        <h3>DPF/FPF Delete</h3>
-                        <p>Remove particulate filter regeneration cycles and disable monitoring</p>
+                    <div class="service-card" data-service="dpf">
+                        <div class="service-background"></div>
+                        <div class="service-content">
+                            <div class="service-icon">🔥</div>
+                            <h3 class="service-title">DPF/FPF Delete</h3>
+                            <p class="service-description">Remove particulate filter regeneration cycles and disable monitoring</p>
+                            <ul class="service-features">
+                                <li>✓ Eliminates regeneration issues</li>
+                                <li>✓ Prevents filter clogging</li>
+                                <li>✓ Improves fuel economy</li>
+                            </ul>
+                        </div>
                     </div>
-                    <div class="service-card">
-                        <div class="service-icon">💨</div>
-                        <h3>EGR Delete</h3>
-                        <p>Close exhaust gas recirculation valves and disable monitoring</p>
+                    
+                    <div class="service-card" data-service="egr">
+                        <div class="service-background"></div>
+                        <div class="service-content">
+                            <div class="service-icon">💨</div>
+                            <h3 class="service-title">EGR Delete</h3>
+                            <p class="service-description">Close exhaust gas recirculation valves and disable monitoring</p>
+                            <ul class="service-features">
+                                <li>✓ Better engine performance</li>
+                                <li>✓ Reduced carbon buildup</li>
+                                <li>✓ Improved throttle response</li>
+                            </ul>
+                        </div>
                     </div>
-                    <div class="service-card">
-                        <div class="service-icon">🔧</div>
-                        <h3>DTC Removal</h3>
-                        <p>Eliminate specific fault codes and prevent check engine lights</p>
+                    
+                    <div class="service-card" data-service="dtc">
+                        <div class="service-background"></div>
+                        <div class="service-content">
+                            <div class="service-icon">🔧</div>
+                            <h3 class="service-title">DTC Removal</h3>
+                            <p class="service-description">Eliminate specific fault codes and prevent check engine lights</p>
+                            <ul class="service-features">
+                                <li>✓ Remove error codes</li>
+                                <li>✓ Clear check engine light</li>
+                                <li>✓ Clean diagnostic scan</li>
+                            </ul>
+                        </div>
                     </div>
-                    <div class="service-card">
-                        <div class="service-icon">⚡</div>
-                        <h3>Stage 1 Tune</h3>
-                        <p>Performance upgrade with optimized fuel injection and boost</p>
+                    
+                    <div class="service-card" data-service="stage1">
+                        <div class="service-background"></div>
+                        <div class="service-content">
+                            <div class="service-icon">⚡</div>
+                            <h3 class="service-title">Stage 1 Tune</h3>
+                            <p class="service-description">Performance upgrade with optimized fuel injection and boost</p>
+                            <ul class="service-features">
+                                <li>✓ +15-30% horsepower</li>
+                                <li>✓ +20-40% torque</li>
+                                <li>✓ Optimized fuel maps</li>
+                            </ul>
+                        </div>
                     </div>
-                    <div class="service-card">
-                        <div class="service-icon">🚫</div>
-                        <h3>AdBlue Delete</h3>
-                        <p>Remove urea system and related monitoring functions</p>
+                    
+                    <div class="service-card" data-service="adblue">
+                        <div class="service-background"></div>
+                        <div class="service-content">
+                            <div class="service-icon">🚫</div>
+                            <h3 class="service-title">AdBlue Delete</h3>
+                            <p class="service-description">Remove urea system and related monitoring functions</p>
+                            <ul class="service-features">
+                                <li>✓ No more DEF refills</li>
+                                <li>✓ Eliminates system failures</li>
+                                <li>✓ Reduced maintenance costs</li>
+                            </ul>
+                        </div>
                     </div>
-                    <div class="service-card">
-                        <div class="service-icon">🏁</div>
-                        <h3>VMAX Remove</h3>
-                        <p>Delete speed limiter for unrestricted performance</p>
+                    
+                    <div class="service-card" data-service="vmax">
+                        <div class="service-background"></div>
+                        <div class="service-content">
+                            <div class="service-icon">🏁</div>
+                            <h3 class="service-title">VMAX Remove</h3>
+                            <p class="service-description">Delete speed limiter for unrestricted performance</p>
+                            <ul class="service-features">
+                                <li>✓ Unlock top speed</li>
+                                <li>✓ Remove factory limits</li>
+                                <li>✓ Full performance potential</li>
+                            </ul>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -172,6 +225,7 @@
         </div>
     </footer>
 
+    <script src="config.js"></script>
     <script src="app.js"></script>
 </body>
 </html>

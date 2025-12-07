@@ -2,24 +2,54 @@ const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs-extra');
+const cors = require('cors');
 const { v4: uuidv4 } = require('uuid');
 const nodemailer = require('nodemailer');
 const twilio = require('twilio');
-const db = require('./database');
+const db = require('./db');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.API_PORT || process.env.PORT || 4000;
+
+// CORS configuration
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(',').map(origin => origin.trim())
+  : ['*'];
+
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    console.warn(`🚫 Blocked CORS request from origin: ${origin}`);
+    return callback(new Error('Not allowed by CORS'));
+  },
+  credentials: true
+}));
+app.options('*', cors());
 
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(express.static('public'));
 
 // Ensure uploads directory exists
 const uploadsDir = path.join(__dirname, 'uploads');
 const modifiedDir = path.join(__dirname, 'uploads', 'modified');
 fs.ensureDirSync(uploadsDir);
 fs.ensureDirSync(modifiedDir);
+
+// Firebase adapter helpers (optional)
+let firebaseUploadFn = null;
+if (process.env.USE_FIREBASE === 'true' || process.env.USE_FIREBASE === '1') {
+  try {
+    const firestoreAdapter = require('./db/firestore-adapter');
+    if (firestoreAdapter && firestoreAdapter.uploadLocalFileToStorage) {
+      firebaseUploadFn = firestoreAdapter.uploadLocalFileToStorage;
+    }
+  } catch (e) {
+    console.warn('⚠️ Firebase upload helper not available:', e.message);
+  }
+}
 
 // Configure multer for file uploads
 const storage = multer.diskStorage({
@@ -45,9 +75,6 @@ const upload = multer({
     }
   }
 });
-
-// Initialize database
-db.init();
 
 // Admin password (set via environment variable or use default)
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123'; // CHANGE THIS IN PRODUCTION!
@@ -88,14 +115,14 @@ function requireAdmin(req, res, next) {
 
 // Routes
 
-// Home page
+// Health check / root
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
-
-// Admin login page
-app.get('/admin', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'admin.html'));
+  res.json({
+    status: 'ok',
+    service: 'ECU Tuning API',
+    version: '1.0.0',
+    docs: 'See README for client/admin hosts.'
+  });
 });
 
 // Admin login API
@@ -138,10 +165,29 @@ app.post('/api/orders', upload.single('ecuFile'), async (req, res) => {
       return res.status(400).json({ error: 'Custom service description is required for custom modifications' });
     }
 
+    // If Firebase is enabled, upload file to storage and set filePath to storage path + downloadURL
+    let filePathToStore = req.file.path;
+    let fileDownloadURL = null;
+    if (firebaseUploadFn) {
+      try {
+        const dest = `orders/originals/${req.file.filename}`;
+        const uploaded = await firebaseUploadFn(req.file.path, dest);
+        if (uploaded && uploaded.path) {
+          filePathToStore = uploaded.path;
+          fileDownloadURL = uploaded.downloadURL;
+          // Optionally remove local file after upload
+          try { fs.unlinkSync(req.file.path); } catch (e) { /* ignore */ }
+        }
+      } catch (e) {
+        console.error('Firebase upload failed, falling back to local storage:', e);
+      }
+    }
+
     const order = await db.createOrder({
       originalFileName: req.file.originalname,
       storedFileName: req.file.filename,
-      filePath: req.file.path,
+      filePath: filePathToStore,
+      fileDownloadURL: fileDownloadURL,
       service: service,
       customServiceDescription: customServiceDescription || null,
       vehicleInfo: vehicleInfo,
@@ -202,14 +248,32 @@ app.post('/api/orders/:id/modified', requireAdmin, upload.single('modifiedFile')
       return res.status(400).json({ error: 'No file uploaded' });
     }
 
-    // Move file to modified directory
-    const modifiedFilePath = path.join(modifiedDir, req.file.filename);
-    await fs.move(req.file.path, modifiedFilePath);
+    // Move file to modified directory or upload to Firebase
+    let modifiedFilePath = path.join(modifiedDir, req.file.filename);
+    let modifiedFileDownloadURL = null;
+    if (firebaseUploadFn) {
+      // upload and remove local file
+      try {
+        const dest = `orders/${req.params.id}/modified/${req.file.filename}`;
+        const uploaded = await firebaseUploadFn(req.file.path, dest);
+        if (uploaded && uploaded.path) {
+          modifiedFilePath = uploaded.path;
+          modifiedFileDownloadURL = uploaded.downloadURL;
+          try { fs.unlinkSync(req.file.path); } catch (e) { /* ignore */ }
+        }
+      } catch (e) {
+        console.error('Firebase upload failed for modified file, falling back to local move:', e);
+        await fs.move(req.file.path, modifiedFilePath);
+      }
+    } else {
+      await fs.move(req.file.path, modifiedFilePath);
+    }
 
     await db.updateOrderModifiedFile(req.params.id, {
       modifiedFileName: req.file.originalname,
       modifiedStoredFileName: req.file.filename,
-      modifiedFilePath: modifiedFilePath
+      modifiedFilePath: modifiedFilePath,
+      modifiedFileDownloadURL: modifiedFileDownloadURL
     });
 
     await db.updateOrderStatus(req.params.id, 'completed');
@@ -237,11 +301,14 @@ app.get('/api/orders/:id/download/original', requireAdmin, async (req, res) => {
       return res.status(404).json({ error: 'Order not found' });
     }
 
+    // If file is stored in Firebase, redirect to download URL; otherwise serve local file
+    if (order.file_download_url) {
+      return res.redirect(order.file_download_url);
+    }
     const filePath = order.file_path;
     if (!fs.existsSync(filePath)) {
       return res.status(404).json({ error: 'File not found' });
     }
-
     res.download(filePath, order.original_file_name);
   } catch (error) {
     console.error('Error downloading file:', error);
@@ -257,8 +324,12 @@ app.get('/api/orders/:id/download/modified', requireAdmin, async (req, res) => {
       return res.status(404).json({ error: 'Order not found' });
     }
 
-    if (!order.modified_file_path) {
+    if (!order.modified_file_path && !order.modified_file_download_url) {
       return res.status(404).json({ error: 'Modified file not available yet' });
+    }
+
+    if (order.modified_file_download_url) {
+      return res.redirect(order.modified_file_download_url);
     }
 
     const filePath = order.modified_file_path;
@@ -402,24 +473,36 @@ async function sendWhatsAppNotification(order) {
 }
 
 // Start server
-app.listen(PORT, () => {
-  const isCloud = process.env.RAILWAY_ENVIRONMENT || process.env.RENDER;
-  const url = isCloud ? process.env.RAILWAY_PUBLIC_DOMAIN || process.env.RENDER_EXTERNAL_URL : `http://localhost:${PORT}`;
-  
-  console.log(`🚀 Server running on ${url}`);
-  console.log(`📁 Uploads directory: ${uploadsDir}`);
-  console.log(`🌐 Environment: ${isCloud ? 'Cloud' : 'Local'}`);
-  
-  if (!emailConfig.auth.user || !emailConfig.auth.pass) {
-    console.log('⚠️ Email not configured. Set SMTP_USER and SMTP_PASS environment variables.');
-  } else {
-    console.log('✅ Email configured');
+async function startServer() {
+  try {
+    // Initialize database first
+    await db.init();
+    
+    app.listen(PORT, () => {
+      const isCloud = process.env.RAILWAY_ENVIRONMENT || process.env.RENDER;
+      const url = isCloud ? process.env.RAILWAY_PUBLIC_DOMAIN || process.env.RENDER_EXTERNAL_URL : `http://localhost:${PORT}`;
+      
+      console.log(`🚀 Server running on ${url}`);
+      console.log(`📁 Uploads directory: ${uploadsDir}`);
+      console.log(`🌐 Environment: ${isCloud ? 'Cloud' : 'Local'}`);
+      
+      if (!emailConfig.auth.user || !emailConfig.auth.pass) {
+        console.log('⚠️ Email not configured. Set SMTP_USER and SMTP_PASS environment variables.');
+      } else {
+        console.log('✅ Email configured');
+      }
+      
+      if (!twilioClient) {
+        console.log('⚠️ WhatsApp not configured. Set TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN environment variables.');
+      } else {
+        console.log('✅ WhatsApp configured');
+      }
+    });
+  } catch (error) {
+    console.error('❌ Failed to start server:', error);
+    process.exit(1);
   }
-  
-  if (!twilioClient) {
-    console.log('⚠️ WhatsApp not configured. Set TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN environment variables.');
-  } else {
-    console.log('✅ WhatsApp configured');
-  }
-});
+}
+
+startServer();
 

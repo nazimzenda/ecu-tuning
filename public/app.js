@@ -1,4 +1,6 @@
 // File upload form handling
+const API_BASE_URL = (window.API_BASE_URL || '').replace(/\/$/, '');
+
 document.addEventListener('DOMContentLoaded', () => {
     const form = document.getElementById('uploadForm');
     const fileInput = document.getElementById('ecuFile');
@@ -54,9 +56,10 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // Add custom service description to form data if provided
+        // Add custom service description to form data if provided (replace existing field)
         if (serviceSelect.value === 'Custom' && customServiceDescription.value.trim()) {
-            formData.append('customServiceDescription', customServiceDescription.value.trim());
+            // use set() to replace any value that FormData(form) may have captured
+            formData.set('customServiceDescription', customServiceDescription.value.trim());
         }
 
         // Disable submit button
@@ -66,7 +69,7 @@ document.addEventListener('DOMContentLoaded', () => {
         messageDiv.classList.remove('show');
 
         try {
-            const response = await fetch('/api/orders', {
+            const response = await fetch(`${API_BASE_URL}/api/orders`, {
                 method: 'POST',
                 body: formData
             });

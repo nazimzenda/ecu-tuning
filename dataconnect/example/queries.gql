@@ -1,0 +1,48 @@
+mutation CreateNewVehicle($make: String!, $model: String!, $year: Int!, $engineType: String!) @auth(level: USER) {
+  vehicle_insert(data: {
+    make: $make,
+    model: $model,
+    year: $year,
+    engineType: $engineType,
+    ownerId_expr: "auth.uid",
+    createdAt_expr: "request.time"
+  })
+}
+
+query GetMyVehicles @auth(level: USER) {
+  vehicles(where: {ownerId: {eq_expr: "auth.uid"}}) {
+    id
+    make
+    model
+    year
+    engineType
+  }
+}
+
+mutation ShareTuneWithUser($tuneId: UUID!, $recipientId: UUID!) @auth(level: USER) {
+  tuneShare_insert(data: {
+    tuneId: $tuneId,
+    recipientId: $recipientId,
+    sharedAt_expr: "request.time"
+  })
+}
+
+query ListPublicTunes @auth(level: PUBLIC, insecureReason: "This operation is safe to expose to the public") {
+  tunes(where: {isPublic: {eq: true}}) {
+    id
+    name
+    description
+    category
+    fileUrl
+    uploader {
+      id
+      displayName
+    }
+    vehicle {
+      id
+      make
+      model
+      year
+    }
+  }
+}

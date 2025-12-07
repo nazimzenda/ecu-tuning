@@ -1,0 +1,50 @@
+type User @table {
+  displayName: String!
+  createdAt: Timestamp!
+  email: String
+  photoUrl: String
+  bio: String
+  contactInfo: String
+}
+
+type Vehicle @table {
+  make: String!
+  model: String!
+  year: Int!
+  engineType: String!
+  createdAt: Timestamp!
+  owner: User
+  VIN: String
+  modifications: String
+  description: String
+}
+
+type Tune @table {
+  name: String!
+  fileUrl: String!
+  tuneVersion: String!
+  isPublic: Boolean!
+  createdAt: Timestamp!
+  updatedAt: Timestamp!
+  uploader: User
+  vehicle: Vehicle
+  description: String
+  category: String
+  targetHP: Int
+  targetTorque: Int
+}
+
+type TuneShare @table {
+  sharedAt: Timestamp!
+  tune: Tune!
+  recipient: User!
+  accessExpiryDate: Timestamp
+}
+
+type Comment @table {
+  content: String!
+  createdAt: Timestamp!
+  author: User
+  tune: Tune
+  parentComment: Comment
+}
