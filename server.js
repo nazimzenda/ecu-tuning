@@ -107,9 +107,14 @@ const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123'; // CHANGE THIS 
 // Admin email for notifications (receives alerts for new orders)
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || '';
 // Admin panel URL (for links in notification emails)
-const ADMIN_URL = process.env.ADMIN_URL || process.env.RAILWAY_PUBLIC_DOMAIN 
+const ADMIN_URL = process.env.ADMIN_URL || (process.env.RAILWAY_PUBLIC_DOMAIN 
   ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}/admin`
-  : 'http://localhost:3001';
+  : 'http://localhost:3001');
+
+// Log admin config at startup
+console.log('👤 Admin configuration:');
+console.log('   - Admin Email:', ADMIN_EMAIL ? `${ADMIN_EMAIL.substring(0, 5)}***` : '❌ NOT SET');
+console.log('   - Admin URL:', ADMIN_URL);
 
 // Email configuration
 // Priority: Resend API (recommended for Railway) > SMTP (for local dev)
