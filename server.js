@@ -6,6 +6,7 @@ const cors = require('cors');
 const { v4: uuidv4 } = require('uuid');
 const nodemailer = require('nodemailer');
 const twilio = require('twilio');
+const { Resend } = require('resend');
 const db = require('./db');
 
 const app = express();
@@ -103,48 +104,45 @@ const upload = multer({
 // Admin password (set via environment variable or use default)
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123'; // CHANGE THIS IN PRODUCTION!
 
-// Email configuration (set via environment variables)
-// Supports multiple variable name formats for flexibility
+// Email configuration
+// Priority: Resend API (recommended for Railway) > SMTP (for local dev)
+const resendApiKey = process.env.RESEND_API_KEY || '';
+const emailFrom = process.env.EMAIL_FROM || 'ECU Tuning Pro <onboarding@resend.dev>'; // Use your verified domain
+
+// Legacy SMTP config (fallback for local development)
 const emailUser = process.env.SMTP_USER || process.env.EMAIL_USER || process.env.GMAIL_USER || '';
 const emailPass = process.env.SMTP_PASS || process.env.EMAIL_PASS || process.env.EMAIL_PASSWORD || process.env.GMAIL_PASS || '';
-const smtpHost = process.env.SMTP_HOST || 'smtp.gmail.com';
-const smtpPort = parseInt(process.env.SMTP_PORT || '465', 10);
 
-// Use direct SMTP configuration for better cloud compatibility
-// Port 465 with SSL often works better on Railway than port 587 with STARTTLS
-const emailConfig = {
-  host: smtpHost,
-  port: smtpPort,
-  secure: smtpPort === 465,  // true for 465, false for other ports
-  auth: {
-    user: emailUser,
-    pass: emailPass
-  },
-  // Extended timeouts for cloud environments
-  connectionTimeout: 60000,  // 60 seconds
-  greetingTimeout: 60000,
-  socketTimeout: 120000,     // 2 minutes for large attachments
-  // Pool configuration for reliability
-  pool: true,
-  maxConnections: 3,
-  maxMessages: 100,
-  // TLS settings
-  tls: {
-    rejectUnauthorized: false,  // Allow self-signed certificates
-    minVersion: 'TLSv1.2'
-  }
-};
+// Initialize Resend client if API key is available
+const resend = resendApiKey ? new Resend(resendApiKey) : null;
+
+// Fallback SMTP transporter for local development
+let emailTransporter = null;
+if (!resend && emailUser && emailPass) {
+  const smtpHost = process.env.SMTP_HOST || 'smtp.gmail.com';
+  const smtpPort = parseInt(process.env.SMTP_PORT || '587', 10);
+  emailTransporter = nodemailer.createTransport({
+    host: smtpHost,
+    port: smtpPort,
+    secure: smtpPort === 465,
+    auth: { user: emailUser, pass: emailPass },
+    tls: { rejectUnauthorized: false }
+  });
+}
 
 // Log email configuration status at startup
 console.log('📧 Email configuration:');
-console.log('   - Host:', smtpHost);
-console.log('   - Port:', smtpPort);
-console.log('   - Secure:', smtpPort === 465 ? 'SSL' : 'STARTTLS');
-console.log('   - User:', emailUser ? `${emailUser.substring(0, 3)}***@***` : '❌ NOT SET');
-console.log('   - Pass:', emailPass ? `✅ SET (${emailPass.length} chars)` : '❌ NOT SET');
-
-// Create email transporter
-const emailTransporter = nodemailer.createTransport(emailConfig);
+if (resend) {
+  console.log('   - Provider: Resend (HTTP API) ✅');
+  console.log('   - API Key:', resendApiKey ? `${resendApiKey.substring(0, 8)}...` : '❌ NOT SET');
+  console.log('   - From:', emailFrom);
+} else if (emailTransporter) {
+  console.log('   - Provider: SMTP (Nodemailer)');
+  console.log('   - User:', emailUser ? `${emailUser.substring(0, 3)}***@***` : '❌ NOT SET');
+} else {
+  console.log('   - Provider: ❌ NOT CONFIGURED');
+  console.log('   - Set RESEND_API_KEY for Railway or SMTP_USER/SMTP_PASS for local');
+}
 
 // Twilio configuration for WhatsApp (set via environment variables)
 const twilioClient = process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN
@@ -474,16 +472,13 @@ async function sendFileReadyNotifications(order, filePath) {
 async function sendEmailNotification(order, filePath) {
   try {
     console.log('📧 ========== EMAIL NOTIFICATION START ==========');
-    console.log('📧 Function called with:');
     console.log('   - Order ID:', order?.id);
     console.log('   - Customer Email:', order?.customer_email);
     console.log('   - File Path:', filePath);
-    console.log('📧 SMTP User:', emailUser ? `${emailUser.substring(0, 5)}...` : 'NOT SET');
-    console.log('📧 SMTP Pass:', emailPass ? `SET (${emailPass.length} chars)` : 'NOT SET');
+    console.log('   - Using:', resend ? 'Resend API' : 'SMTP');
     
-    if (!emailUser || !emailPass) {
-      console.log('⚠️ Email not configured. Set SMTP_USER/SMTP_PASS or EMAIL_USER/EMAIL_PASSWORD environment variables.');
-      console.log('   Current values - User:', emailUser ? 'SET' : 'EMPTY', '| Pass:', emailPass ? 'SET' : 'EMPTY');
+    if (!resend && !emailTransporter) {
+      console.log('⚠️ Email not configured. Set RESEND_API_KEY or SMTP credentials.');
       return;
     }
     
@@ -492,72 +487,79 @@ async function sendEmailNotification(order, filePath) {
       return;
     }
 
-    // Check if file exists before trying to attach
-    const fileExists = await fs.pathExists(filePath);
-    if (!fileExists) {
-      console.error('❌ Modified file not found at:', filePath);
-      // Try alternative path from order
-      if (order.modified_file_path && await fs.pathExists(order.modified_file_path)) {
-        filePath = order.modified_file_path;
-      } else {
-        console.error('❌ Cannot find modified file to attach. Sending email without attachment.');
-      }
-    }
-
     const modifiedFileName = order.modified_file_name || order.modified_stored_file_name || 'modified_file.bin';
     const serviceName = order.service || 'ECU Tuning Service';
     const vehicleInfo = order.vehicle_info || 'Vehicle';
     const originalFileName = order.original_file_name || 'original_file.bin';
 
-    const mailOptions = {
-      from: `"ECU Tuning Pro" <${emailConfig.auth.user}>`,
-      to: order.customer_email,
-      subject: `✅ Your Modified ECU File is Ready - Order #${String(order.id).padStart(3, '0')}`,
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #1a1a1a; color: #fff; padding: 20px; border-radius: 10px;">
-          <h2 style="color: #FFD700;">🎉 Your Modified ECU File is Ready!</h2>
-          <p>Hello ${order.customer_name || 'Customer'},</p>
-          <p>We're pleased to inform you that your ECU file modification has been completed.</p>
-          
-          <div style="background: #2d2d2d; padding: 20px; border-radius: 8px; margin: 20px 0; color: #fff;">
-            <h3 style="color: #FFD700; margin-top: 0;">📋 Order Details:</h3>
-            <p style="color: #fff;"><strong>Order ID:</strong> #${String(order.id).padStart(3, '0')}</p>
-            <p style="color: #fff;"><strong>Service:</strong> ${serviceName}</p>
-            <p style="color: #fff;"><strong>Vehicle:</strong> ${vehicleInfo}</p>
-            <p style="color: #fff;"><strong>Original File:</strong> ${originalFileName}</p>
-            <p style="color: #fff;"><strong>Modified File:</strong> ${modifiedFileName}</p>
-          </div>
-
-          <p>Your modified file is attached to this email. Please download it and flash it to your vehicle's ECU.</p>
-          
-          <p style="color: #888; font-size: 12px; margin-top: 30px;">
-            If you have any questions, please contact us.<br>
-            <strong style="color: #FFD700;">ECU Tuning Pro</strong>
-          </p>
+    const emailHtml = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #1a1a1a; color: #fff; padding: 20px; border-radius: 10px;">
+        <h2 style="color: #FFD700;">🎉 Your Modified ECU File is Ready!</h2>
+        <p>Hello ${order.customer_name || 'Customer'},</p>
+        <p>We're pleased to inform you that your ECU file modification has been completed.</p>
+        
+        <div style="background: #2d2d2d; padding: 20px; border-radius: 8px; margin: 20px 0; color: #fff;">
+          <h3 style="color: #FFD700; margin-top: 0;">📋 Order Details:</h3>
+          <p style="color: #fff;"><strong>Order ID:</strong> #${String(order.id).padStart(3, '0')}</p>
+          <p style="color: #fff;"><strong>Service:</strong> ${serviceName}</p>
+          <p style="color: #fff;"><strong>Vehicle:</strong> ${vehicleInfo}</p>
+          <p style="color: #fff;"><strong>Original File:</strong> ${originalFileName}</p>
+          <p style="color: #fff;"><strong>Modified File:</strong> ${modifiedFileName}</p>
         </div>
-      `
-    };
 
-    // Only add attachment if file exists
-    if (await fs.pathExists(filePath)) {
-      mailOptions.attachments = [
-        {
-          filename: modifiedFileName,
-          path: filePath
-        }
-      ];
-    }
+        <p><strong style="color: #FFD700;">📥 How to get your file:</strong></p>
+        <p>Please reply to this email or contact us to receive your modified ECU file.</p>
+        
+        <p style="color: #888; font-size: 12px; margin-top: 30px;">
+          If you have any questions, please contact us.<br>
+          <strong style="color: #FFD700;">ECU Tuning Pro</strong>
+        </p>
+      </div>
+    `;
 
     console.log('📧 Sending email to:', order.customer_email);
-    console.log('📧 Mail options:', JSON.stringify({ to: mailOptions.to, subject: mailOptions.subject, hasAttachment: !!mailOptions.attachments }));
-    
-    const info = await emailTransporter.sendMail(mailOptions);
-    console.log('✅ Email sent successfully:', info.messageId);
+
+    // Use Resend API (preferred for Railway)
+    if (resend) {
+      const { data, error } = await resend.emails.send({
+        from: emailFrom,
+        to: [order.customer_email],
+        subject: `✅ Your Modified ECU File is Ready - Order #${String(order.id).padStart(3, '0')}`,
+        html: emailHtml
+      });
+
+      if (error) {
+        console.error('❌ Resend error:', error);
+        throw new Error(error.message);
+      }
+
+      console.log('✅ Email sent via Resend:', data?.id);
+    } 
+    // Fallback to SMTP (for local development)
+    else if (emailTransporter) {
+      const mailOptions = {
+        from: `"ECU Tuning Pro" <${emailUser}>`,
+        to: order.customer_email,
+        subject: `✅ Your Modified ECU File is Ready - Order #${String(order.id).padStart(3, '0')}`,
+        html: emailHtml
+      };
+
+      // Add attachment if file exists
+      if (filePath && await fs.pathExists(filePath)) {
+        mailOptions.attachments = [{
+          filename: modifiedFileName,
+          path: filePath
+        }];
+      }
+
+      const info = await emailTransporter.sendMail(mailOptions);
+      console.log('✅ Email sent via SMTP:', info.messageId);
+    }
+
     console.log('📧 ========== EMAIL NOTIFICATION END ==========');
   } catch (error) {
     console.error('❌ Error sending email:', error.message);
-    console.error('❌ Full error:', error);
-    throw error; // Re-throw to be caught by parent
+    throw error;
   }
 }
 
@@ -615,14 +617,16 @@ async function startServer() {
       console.log(`📁 Uploads directory: ${uploadsDir}`);
       console.log(`🌐 Environment: ${isCloud ? 'Cloud' : 'Local'}`);
       
-      if (!emailConfig.auth.user || !emailConfig.auth.pass) {
-        console.log('⚠️ Email not configured. Set SMTP_USER and SMTP_PASS environment variables.');
-      } else {
-        console.log('✅ Email configured - testing connection...');
-        // Test email connection
+      // Email status
+      if (resend) {
+        console.log('✅ Email configured via Resend API (ready to send)');
+      } else if (emailTransporter) {
+        console.log('✅ Email configured via SMTP - testing connection...');
         emailTransporter.verify()
-          .then(() => console.log('✅ Email connection verified successfully!'))
-          .catch(err => console.log('⚠️ Email connection test failed:', err.message));
+          .then(() => console.log('✅ SMTP connection verified!'))
+          .catch(err => console.log('⚠️ SMTP connection test failed:', err.message));
+      } else {
+        console.log('⚠️ Email not configured. Set RESEND_API_KEY for Railway.');
       }
       
       if (!twilioClient) {
