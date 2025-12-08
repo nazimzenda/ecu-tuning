@@ -507,8 +507,8 @@ async function sendEmailNotification(order, filePath) {
           <p style="color: #fff;"><strong>Modified File:</strong> ${modifiedFileName}</p>
         </div>
 
-        <p><strong style="color: #FFD700;">📥 How to get your file:</strong></p>
-        <p>Please reply to this email or contact us to receive your modified ECU file.</p>
+        <p><strong style="color: #FFD700;">📥 Your modified file is attached!</strong></p>
+        <p>Download the attached file and flash it to your ECU. If you have any issues with the attachment, please reply to this email.</p>
         
         <p style="color: #888; font-size: 12px; margin-top: 30px;">
           If you have any questions, please contact us.<br>
@@ -521,19 +521,31 @@ async function sendEmailNotification(order, filePath) {
 
     // Use Resend API (preferred for Railway)
     if (resend) {
-      const { data, error } = await resend.emails.send({
+      const emailOptions = {
         from: emailFrom,
         to: [order.customer_email],
         subject: `✅ Your Modified ECU File is Ready - Order #${String(order.id).padStart(3, '0')}`,
         html: emailHtml
-      });
+      };
+
+      // Add attachment if file exists
+      if (filePath && await fs.pathExists(filePath)) {
+        const fileContent = await fs.readFile(filePath);
+        emailOptions.attachments = [{
+          filename: modifiedFileName,
+          content: fileContent
+        }];
+        console.log('📎 Attaching file:', modifiedFileName, '- Size:', fileContent.length, 'bytes');
+      }
+
+      const { data, error } = await resend.emails.send(emailOptions);
 
       if (error) {
         console.error('❌ Resend error:', error);
         throw new Error(error.message);
       }
 
-      console.log('✅ Email sent via Resend:', data?.id);
+      console.log('✅ Email sent via Resend with attachment:', data?.id);
     } 
     // Fallback to SMTP (for local development)
     else if (emailTransporter) {
