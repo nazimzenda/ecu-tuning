@@ -6,4 +6,10 @@ uploads/
 .DS_Store
 *.log
 service-account.json
+Private key of firebase storage.json
+**/Private key*.json
+**/service-account*.json
+**/firebase-*.json
+!firebase.json
+!firebase.emulators.json
 

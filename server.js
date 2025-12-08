@@ -53,16 +53,25 @@ console.log('   - Persistent:', process.env.DATA_DIR ? '✅ Railway Volume' : '�
 fs.ensureDirSync(uploadsDir);
 fs.ensureDirSync(modifiedDir);
 
-// Firebase adapter helpers (optional)
+// Firebase adapter helpers (optional) - only if Firebase is properly configured
 let firebaseUploadFn = null;
-if (process.env.USE_FIREBASE === 'true' || process.env.USE_FIREBASE === '1') {
+const useFirebaseEnv = process.env.USE_FIREBASE === 'true' || process.env.USE_FIREBASE === '1';
+const hasFirebaseCredentials = !!(process.env.GOOGLE_SERVICE_ACCOUNT_JSON && process.env.FIREBASE_STORAGE_BUCKET);
+
+if (useFirebaseEnv && hasFirebaseCredentials) {
   try {
     const firestoreAdapter = require('./db/firestore-adapter');
     if (firestoreAdapter && firestoreAdapter.uploadLocalFileToStorage) {
       firebaseUploadFn = firestoreAdapter.uploadLocalFileToStorage;
+      console.log('☁️ Firebase Storage: ✅ Enabled');
     }
   } catch (e) {
     console.warn('⚠️ Firebase upload helper not available:', e.message);
+  }
+} else {
+  console.log('☁️ Firebase Storage: ❌ Disabled (using local storage)');
+  if (useFirebaseEnv && !hasFirebaseCredentials) {
+    console.warn('   ⚠️ USE_FIREBASE is set but credentials are missing');
   }
 }
 
@@ -98,27 +107,39 @@ const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123'; // CHANGE THIS 
 // Supports multiple variable name formats for flexibility
 const emailUser = process.env.SMTP_USER || process.env.EMAIL_USER || process.env.GMAIL_USER || '';
 const emailPass = process.env.SMTP_PASS || process.env.EMAIL_PASS || process.env.EMAIL_PASSWORD || process.env.GMAIL_PASS || '';
+const smtpHost = process.env.SMTP_HOST || 'smtp.gmail.com';
+const smtpPort = parseInt(process.env.SMTP_PORT || '465', 10);
 
-// Use Gmail service directly for better compatibility with cloud environments
+// Use direct SMTP configuration for better cloud compatibility
+// Port 465 with SSL often works better on Railway than port 587 with STARTTLS
 const emailConfig = {
-  service: 'gmail',  // Use service instead of host/port for better compatibility
+  host: smtpHost,
+  port: smtpPort,
+  secure: smtpPort === 465,  // true for 465, false for other ports
   auth: {
     user: emailUser,
     pass: emailPass
   },
-  // Connection settings for cloud environments
-  connectionTimeout: 30000,  // 30 seconds
-  greetingTimeout: 30000,
-  socketTimeout: 60000,
+  // Extended timeouts for cloud environments
+  connectionTimeout: 60000,  // 60 seconds
+  greetingTimeout: 60000,
+  socketTimeout: 120000,     // 2 minutes for large attachments
+  // Pool configuration for reliability
+  pool: true,
+  maxConnections: 3,
+  maxMessages: 100,
   // TLS settings
   tls: {
-    rejectUnauthorized: false  // Allow self-signed certificates
+    rejectUnauthorized: false,  // Allow self-signed certificates
+    minVersion: 'TLSv1.2'
   }
 };
 
 // Log email configuration status at startup
 console.log('📧 Email configuration:');
-console.log('   - Service: Gmail');
+console.log('   - Host:', smtpHost);
+console.log('   - Port:', smtpPort);
+console.log('   - Secure:', smtpPort === 465 ? 'SSL' : 'STARTTLS');
 console.log('   - User:', emailUser ? `${emailUser.substring(0, 3)}***@***` : '❌ NOT SET');
 console.log('   - Pass:', emailPass ? `✅ SET (${emailPass.length} chars)` : '❌ NOT SET');
 
@@ -313,11 +334,23 @@ app.post('/api/orders/:id/modified', requireAdmin, upload.single('modifiedFile')
     // Get order details for notifications
     const order = await db.getOrder(req.params.id);
     
-    // Send email and WhatsApp notifications (non-blocking - don't wait)
+    // Send email and WhatsApp notifications
     if (order) {
-      sendFileReadyNotifications(order, modifiedFilePath).catch(err => {
-        console.error('Notification error (non-blocking):', err.message);
-      });
+      console.log('📧 Preparing to send modified file notification...');
+      console.log('📧 Order:', JSON.stringify({ id: order.id, email: order.customer_email, phone: order.customer_phone }));
+      console.log('📧 File path:', modifiedFilePath);
+      console.log('📧 File exists:', fs.existsSync(modifiedFilePath));
+      
+      // Wait for notifications to complete so we can see errors
+      try {
+        await sendFileReadyNotifications(order, modifiedFilePath);
+        console.log('✅ Modified file notifications sent successfully');
+      } catch (err) {
+        console.error('❌ Notification error:', err.message);
+        console.error('❌ Full error:', err);
+      }
+    } else {
+      console.error('❌ Order not found after update, cannot send notification');
     }
 
     res.json({ success: true, message: 'Modified file uploaded successfully' });
@@ -432,8 +465,10 @@ async function sendFileReadyNotifications(order, filePath) {
 async function sendEmailNotification(order, filePath) {
   try {
     console.log('📧 ========== EMAIL NOTIFICATION START ==========');
-    console.log('📧 Order ID:', order?.id);
-    console.log('📧 Customer Email:', order?.customer_email);
+    console.log('📧 Function called with:');
+    console.log('   - Order ID:', order?.id);
+    console.log('   - Customer Email:', order?.customer_email);
+    console.log('   - File Path:', filePath);
     console.log('📧 SMTP User:', emailUser ? `${emailUser.substring(0, 5)}...` : 'NOT SET');
     console.log('📧 SMTP Pass:', emailPass ? `SET (${emailPass.length} chars)` : 'NOT SET');
     
