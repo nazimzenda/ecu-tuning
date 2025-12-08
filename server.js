@@ -297,13 +297,24 @@ app.put('/api/orders/:id/status', requireAdmin, async (req, res) => {
 // API: Upload modified file (admin only)
 app.post('/api/orders/:id/modified', requireAdmin, upload.single('modifiedFile'), async (req, res) => {
   try {
+    console.log('📤 Upload modified file request for order:', req.params.id);
+    
     if (!req.file) {
+      console.error('❌ No file in request');
       return res.status(400).json({ error: 'No file uploaded' });
     }
+
+    console.log('📁 File received:', req.file.originalname, 'Size:', req.file.size);
+    console.log('📁 Temp path:', req.file.path);
+
+    // Ensure modified directory exists
+    await fs.ensureDir(modifiedDir);
+    console.log('📁 Modified directory ensured:', modifiedDir);
 
     // Move file to modified directory or upload to Firebase
     let modifiedFilePath = path.join(modifiedDir, req.file.filename);
     let modifiedFileDownloadURL = null;
+    
     if (firebaseUploadFn) {
       // upload and remove local file
       try {
@@ -316,12 +327,15 @@ app.post('/api/orders/:id/modified', requireAdmin, upload.single('modifiedFile')
         }
       } catch (e) {
         console.error('Firebase upload failed for modified file, falling back to local move:', e);
-        await fs.move(req.file.path, modifiedFilePath);
+        await fs.move(req.file.path, modifiedFilePath, { overwrite: true });
       }
     } else {
-      await fs.move(req.file.path, modifiedFilePath);
+      console.log('📁 Moving file to:', modifiedFilePath);
+      await fs.move(req.file.path, modifiedFilePath, { overwrite: true });
+      console.log('✅ File moved successfully');
     }
 
+    console.log('💾 Updating database...');
     await db.updateOrderModifiedFile(req.params.id, {
       modifiedFileName: req.file.originalname,
       modifiedStoredFileName: req.file.filename,
@@ -330,33 +344,28 @@ app.post('/api/orders/:id/modified', requireAdmin, upload.single('modifiedFile')
     });
 
     await db.updateOrderStatus(req.params.id, 'completed');
+    console.log('✅ Database updated');
 
     // Get order details for notifications
     const order = await db.getOrder(req.params.id);
     
-    // Send email and WhatsApp notifications
+    // Send email and WhatsApp notifications (non-blocking - don't fail the request)
     if (order) {
       console.log('📧 Preparing to send modified file notification...');
-      console.log('📧 Order:', JSON.stringify({ id: order.id, email: order.customer_email, phone: order.customer_phone }));
-      console.log('📧 File path:', modifiedFilePath);
-      console.log('📧 File exists:', fs.existsSync(modifiedFilePath));
       
-      // Wait for notifications to complete so we can see errors
-      try {
-        await sendFileReadyNotifications(order, modifiedFilePath);
-        console.log('✅ Modified file notifications sent successfully');
-      } catch (err) {
-        console.error('❌ Notification error:', err.message);
-        console.error('❌ Full error:', err);
-      }
-    } else {
-      console.error('❌ Order not found after update, cannot send notification');
+      // Fire and forget - don't wait for email
+      sendFileReadyNotifications(order, modifiedFilePath)
+        .then(() => console.log('✅ Notifications sent successfully'))
+        .catch(err => console.error('⚠️ Notification error (non-blocking):', err.message));
     }
 
+    // Return success immediately - don't wait for email
+    console.log('✅ Upload complete, returning success');
     res.json({ success: true, message: 'Modified file uploaded successfully' });
   } catch (error) {
-    console.error('Error uploading modified file:', error);
-    res.status(500).json({ error: 'Failed to upload modified file' });
+    console.error('❌ Error uploading modified file:', error);
+    console.error('❌ Stack:', error.stack);
+    res.status(500).json({ error: 'Failed to upload modified file: ' + error.message });
   }
 });
 
