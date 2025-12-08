@@ -104,6 +104,13 @@ const upload = multer({
 // Admin password (set via environment variable or use default)
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123'; // CHANGE THIS IN PRODUCTION!
 
+// Admin email for notifications (receives alerts for new orders)
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || '';
+// Admin panel URL (for links in notification emails)
+const ADMIN_URL = process.env.ADMIN_URL || process.env.RAILWAY_PUBLIC_DOMAIN 
+  ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}/admin`
+  : 'http://localhost:3001';
+
 // Email configuration
 // Priority: Resend API (recommended for Railway) > SMTP (for local dev)
 const resendApiKey = process.env.RESEND_API_KEY || '';
@@ -247,6 +254,18 @@ app.post('/api/orders', upload.single('ecuFile'), async (req, res) => {
       customerPhone: customerPhone || null,
       status: 'pending'
     });
+
+    // Send admin notification (fire-and-forget, don't block response)
+    sendAdminNotification({
+      id: order.id,
+      customer_name: customerName || 'Anonymous',
+      customer_email: customerEmail || '',
+      customer_phone: customerPhone || null,
+      vehicle_info: vehicleInfo,
+      service: service,
+      custom_service_description: customServiceDescription || null,
+      original_file_name: req.file.originalname
+    }).catch(err => console.error('Admin notification error:', err.message));
 
     res.json({ success: true, orderId: order.id, message: 'File uploaded successfully' });
   } catch (error) {
@@ -572,6 +591,89 @@ async function sendEmailNotification(order, filePath) {
   } catch (error) {
     console.error('❌ Error sending email:', error.message);
     throw error;
+  }
+}
+
+// Function to send admin notification for new orders
+async function sendAdminNotification(order) {
+  try {
+    console.log('📧 ========== ADMIN NOTIFICATION START ==========');
+    console.log('   - Order ID:', order?.id);
+    console.log('   - Admin Email:', ADMIN_EMAIL || '(not set)');
+    
+    if (!ADMIN_EMAIL) {
+      console.log('⚠️ ADMIN_EMAIL not configured. Set ADMIN_EMAIL environment variable to receive new order notifications.');
+      return;
+    }
+    
+    if (!resend && !emailTransporter) {
+      console.log('⚠️ Email not configured. Cannot send admin notification.');
+      return;
+    }
+
+    const orderId = String(order.id).padStart(3, '0');
+    const adminLink = `${ADMIN_URL}`;
+    
+    const emailHtml = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #1a1a1a; color: #fff; padding: 20px; border-radius: 10px;">
+        <h2 style="color: #00FF00;">🚀 New Order Received!</h2>
+        <p>A new ECU tuning order has been submitted.</p>
+        
+        <div style="background: #2d2d2d; padding: 20px; border-radius: 8px; margin: 20px 0;">
+          <h3 style="color: #FFD700; margin-top: 0;">📋 Order Details:</h3>
+          <p style="color: #fff;"><strong>Order ID:</strong> #${orderId}</p>
+          <p style="color: #fff;"><strong>Customer:</strong> ${order.customer_name || 'Anonymous'}</p>
+          <p style="color: #fff;"><strong>Email:</strong> ${order.customer_email || 'Not provided'}</p>
+          <p style="color: #fff;"><strong>Phone:</strong> ${order.customer_phone || 'Not provided'}</p>
+          <p style="color: #fff;"><strong>Vehicle:</strong> ${order.vehicle_info || 'Not specified'}</p>
+          <p style="color: #fff;"><strong>Service:</strong> ${order.service || 'Not specified'}</p>
+          ${order.custom_service_description ? `<p style="color: #fff;"><strong>Custom Request:</strong> ${order.custom_service_description}</p>` : ''}
+          <p style="color: #fff;"><strong>Original File:</strong> ${order.original_file_name || 'Unknown'}</p>
+        </div>
+
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${adminLink}" style="display: inline-block; background: #FFD700; color: #000; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">
+            🔐 Go to Admin Panel
+          </a>
+        </div>
+        
+        <p style="color: #888; font-size: 12px; margin-top: 30px; text-align: center;">
+          ECU Tuning Pro - Admin Notification
+        </p>
+      </div>
+    `;
+
+    console.log('📧 Sending admin notification to:', ADMIN_EMAIL);
+
+    if (resend) {
+      const { data, error } = await resend.emails.send({
+        from: emailFrom,
+        to: [ADMIN_EMAIL],
+        subject: `🚀 New Order #${orderId} - ${order.customer_name || 'Anonymous'} - ${order.service || 'ECU Service'}`,
+        html: emailHtml
+      });
+
+      if (error) {
+        console.error('❌ Resend error (admin):', error);
+        throw new Error(error.message);
+      }
+
+      console.log('✅ Admin notification sent via Resend:', data?.id);
+    } else if (emailTransporter) {
+      const info = await emailTransporter.sendMail({
+        from: `"ECU Tuning Pro" <${emailUser}>`,
+        to: ADMIN_EMAIL,
+        subject: `🚀 New Order #${orderId} - ${order.customer_name || 'Anonymous'} - ${order.service || 'ECU Service'}`,
+        html: emailHtml
+      });
+
+      console.log('✅ Admin notification sent via SMTP:', info.messageId);
+    }
+
+    console.log('📧 ========== ADMIN NOTIFICATION END ==========');
+  } catch (error) {
+    console.error('❌ Error sending admin notification:', error.message);
+    // Don't throw - admin notification failure shouldn't break order creation
   }
 }
 
