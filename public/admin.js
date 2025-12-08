@@ -354,37 +354,56 @@ document.addEventListener('DOMContentLoaded', () => {
 
         document.getElementById('modalTitle').textContent = `Upload Modified File - Order #${String(orderId).padStart(3, '0')}`;
         document.getElementById('modalBody').innerHTML = `
-            <form id="uploadModifiedForm" onsubmit="uploadModifiedFile(event, ${orderId})">
+            <form id="uploadModifiedForm">
                 <div class="form-group">
-                    <label for="modifiedFile">Select Modified File</label>
+                    <label for="modifiedFile" style="color: #FFD700; font-weight: bold;">SELECT MODIFIED FILE</label>
                     <input type="file" id="modifiedFile" name="modifiedFile" 
-                           accept=".bin,.hex,.ori,.winols,.dam" required>
+                           accept=".bin,.hex,.ori,.winols,.dam" required
+                           style="margin-top: 0.5rem;">
                 </div>
-                <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem;">
-                    Upload Modified File
+                <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem; font-size: 1.1rem; padding: 1rem;">
+                    UPLOAD MODIFIED FILE
                 </button>
             </form>
         `;
         modal.classList.add('active');
+        
+        // Attach event listener after form is added to DOM
+        const uploadForm = document.getElementById('uploadModifiedForm');
+        uploadForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await handleUploadModified(orderId);
+        });
     };
 
-    window.uploadModifiedFile = async (e, orderId) => {
-        e.preventDefault();
-        const form = e.target;
-        const formData = new FormData(form);
-        const fileInput = form.querySelector('#modifiedFile');
-
-        if (!fileInput.files[0]) {
+    // Separate function for upload handling
+    async function handleUploadModified(orderId) {
+        const fileInput = document.getElementById('modifiedFile');
+        
+        if (!fileInput || !fileInput.files[0]) {
             alert('Please select a file');
             return;
         }
 
+        const submitBtn = document.querySelector('#uploadModifiedForm button[type="submit"]');
+        const originalText = submitBtn.textContent;
+        submitBtn.textContent = 'UPLOADING...';
+        submitBtn.disabled = true;
+
         try {
+            const formData = new FormData();
+            formData.append('modifiedFile', fileInput.files[0]);
+
+            console.log('Uploading modified file for order:', orderId);
+            console.log('File:', fileInput.files[0].name, 'Size:', fileInput.files[0].size);
+
             const response = await fetch(`${API_BASE_URL}/api/orders/${orderId}/modified`, {
                 method: 'POST',
                 headers: { 'x-admin-session': adminSessionId },
                 body: formData
             });
+
+            console.log('Upload response status:', response.status);
 
             if (response.status === 401) {
                 adminSessionId = null;
@@ -394,18 +413,27 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const data = await response.json();
+            console.log('Upload response data:', data);
 
             if (response.ok) {
-                alert('Modified file uploaded successfully!');
+                alert('✅ Modified file uploaded successfully!\n\nThe customer will receive an email notification.');
                 modal.classList.remove('active');
                 loadOrders();
             } else {
-                alert(`Error: ${data.error || 'Failed to upload file'}`);
+                alert(`❌ Error: ${data.error || 'Failed to upload file'}`);
             }
         } catch (error) {
             console.error('Error uploading file:', error);
-            alert('Error uploading file');
+            alert('❌ Error uploading file: ' + error.message);
+        } finally {
+            submitBtn.textContent = originalText;
+            submitBtn.disabled = false;
         }
+    }
+
+    window.uploadModifiedFile = async (e, orderId) => {
+        e.preventDefault();
+        await handleUploadModified(orderId);
     };
 
     window.deleteOrder = async (orderId) => {
