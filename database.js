@@ -2,11 +2,18 @@ const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 const fs = require('fs-extra');
 
-const dbPath = path.join(__dirname, 'database.sqlite');
+// Data directory - use DATA_DIR env var for Railway Volume, otherwise use local directory
+const dataDir = process.env.DATA_DIR || __dirname;
+const dbPath = path.join(dataDir, 'database.sqlite');
+
+// Ensure data directory exists
+fs.ensureDirSync(dataDir);
+
 let db;
 
 function init() {
   return new Promise((resolve, reject) => {
+    console.log('📂 Database path:', dbPath);
     db = new sqlite3.Database(dbPath, (err) => {
       if (err) {
         console.error('Error opening database:', err);
@@ -14,6 +21,8 @@ function init() {
         return;
       }
       console.log('✅ Connected to SQLite database');
+      console.log('   - Location:', dbPath);
+      console.log('   - Persistent:', process.env.DATA_DIR ? '✅ Railway Volume' : '⚠️ Ephemeral');
       createTables().then(resolve).catch(reject);
     });
   });

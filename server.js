@@ -33,9 +33,23 @@ app.options('*', cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Data directory - use DATA_DIR env var for Railway Volume, otherwise use local directory
+// Railway Volume: DATA_DIR=/app/data (persists across deploys)
+// Local/Ephemeral: defaults to current directory
+const dataDir = process.env.DATA_DIR || __dirname;
+const uploadsDir = path.join(dataDir, 'uploads');
+const modifiedDir = path.join(dataDir, 'uploads', 'modified');
+const databasePath = path.join(dataDir, 'database.sqlite');
+
+// Log storage configuration
+console.log('📁 Storage configuration:');
+console.log('   - Data directory:', dataDir);
+console.log('   - Uploads directory:', uploadsDir);
+console.log('   - Modified files:', modifiedDir);
+console.log('   - Database:', databasePath);
+console.log('   - Persistent:', process.env.DATA_DIR ? '✅ Railway Volume' : '⚠️ Ephemeral (will reset on deploy)');
+
 // Ensure uploads directory exists
-const uploadsDir = path.join(__dirname, 'uploads');
-const modifiedDir = path.join(__dirname, 'uploads', 'modified');
 fs.ensureDirSync(uploadsDir);
 fs.ensureDirSync(modifiedDir);
 

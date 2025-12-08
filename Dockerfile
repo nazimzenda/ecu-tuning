@@ -19,8 +19,13 @@ COPY . .
 # Copy Nginx configuration
 COPY nginx.conf /etc/nginx/nginx.conf
 
-# Create uploads directories
+# Create uploads directories (for ephemeral storage fallback)
 RUN mkdir -p uploads/modified
+
+# Create data directory for Railway Volume mount
+# When Railway Volume is attached, it mounts to /app/data
+# and this directory will be replaced with persistent storage
+RUN mkdir -p /app/data/uploads/modified
 
 # Create Nginx run directory
 RUN mkdir -p /run/nginx
