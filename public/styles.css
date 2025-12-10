@@ -97,7 +97,7 @@ body {
     position: relative;
 }
 
-/* Animated background */
+/* Animated background - optimized for performance */
 body::before {
     content: '';
     position: fixed;
@@ -110,12 +110,19 @@ body::before {
         radial-gradient(circle at 80% 80%, rgba(255, 215, 0, 0.03) 0%, transparent 50%),
         radial-gradient(circle at 40% 20%, rgba(255, 215, 0, 0.02) 0%, transparent 50%);
     z-index: -1;
-    animation: backgroundPulse 20s ease-in-out infinite;
+    opacity: 0.5;
+}
+
+/* Respect user preference for reduced motion */
+@media (prefers-reduced-motion: no-preference) {
+    body::before {
+        animation: backgroundPulse 20s ease-in-out infinite;
+    }
 }
 
 @keyframes backgroundPulse {
-    0%, 100% { opacity: 0.3; transform: scale(1); }
-    50% { opacity: 0.6; transform: scale(1.1); }
+    0%, 100% { opacity: 0.3; }
+    50% { opacity: 0.6; }
 }
 
 /* === TYPOGRAPHY === */
@@ -200,8 +207,14 @@ a:hover {
 
 .logo-icon {
     font-size: 2rem;
-    animation: rotateGear 8s linear infinite;
     filter: drop-shadow(0 0 10px var(--gold-glow));
+}
+
+/* Only animate on hover or for users who don't prefer reduced motion */
+@media (prefers-reduced-motion: no-preference) {
+    .logo-icon {
+        animation: rotateGear 8s linear infinite;
+    }
 }
 
 @keyframes rotateGear {
@@ -1650,4 +1663,25 @@ a:hover {
 .upload-card {
     max-width: 800px;
     margin: 0 auto;
+}
+
+/* === PERFORMANCE OPTIMIZATIONS === */
+/* Disable all animations for users who prefer reduced motion */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* GPU acceleration for animated elements */
+.card, .service-card, .modal, .navbar, .btn {
+    will-change: transform;
+    transform: translateZ(0);
+}
+
+/* Optimize font rendering */
+body {
+    text-rendering: optimizeSpeed;
 }

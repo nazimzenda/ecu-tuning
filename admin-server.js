@@ -1,6 +1,7 @@
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
+const compression = require('compression');
 
 // Global error handlers to capture crashes and unhandled rejections
 process.on('uncaughtException', (err) => {
@@ -26,15 +27,25 @@ const API_BASE_URL = process.env.NODE_ENV === 'production'
 
 const adminApp = express();
 
+// Enable gzip compression
+adminApp.use(compression());
+
+// Cache static assets for 1 day in production
+const cacheMaxAge = process.env.NODE_ENV === 'production' ? 86400000 : 0;
+
 // Config endpoint
 adminApp.get('/config.js', (req, res) => {
   res.type('application/javascript');
   res.send(`window.API_BASE_URL = '${API_BASE_URL.replace(/'/g, "\\'")}';`);
 });
 
-// Serve CSS, JS, images, fonts (but NOT HTML files)
+// Serve CSS, JS, images, fonts (but NOT HTML files) with caching
 adminApp.get(/\.(css|js|png|jpg|jpeg|gif|svg|woff|woff2|ttf|eot)$/i, (req, res, next) => {
-  express.static(path.join(__dirname, 'public'))(req, res, next);
+  express.static(path.join(__dirname, 'public'), {
+    maxAge: cacheMaxAge,
+    etag: true,
+    lastModified: true
+  })(req, res, next);
 });
 
 // Serve admin.html for ALL routes (including root)

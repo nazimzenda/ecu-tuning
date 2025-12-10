@@ -4,7 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ECU Tuning Service - Professional File Modification</title>
+    <!-- Preload critical CSS -->
+    <link rel="preload" href="styles.css" as="style">
     <link rel="stylesheet" href="styles.css">
+    <!-- DNS prefetch for external resources -->
+    <link rel="dns-prefetch" href="//fonts.googleapis.com">
+    <!-- Preconnect to API -->
+    <link rel="preconnect" href="/" crossorigin>
 </head>
 <body>
     <nav class="navbar">
@@ -226,7 +232,7 @@
     </footer>
 
     <script src="config.js"></script>
-    <script src="app.js"></script>
+    <script src="app.js" defer></script>
 </body>
 </html>
 

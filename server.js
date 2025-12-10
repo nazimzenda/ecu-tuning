@@ -3,6 +3,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs-extra');
 const cors = require('cors');
+const compression = require('compression');
 const { v4: uuidv4 } = require('uuid');
 const nodemailer = require('nodemailer');
 const twilio = require('twilio');
@@ -10,6 +11,10 @@ const { Resend } = require('resend');
 const db = require('./db');
 
 const app = express();
+
+// Enable gzip compression for all responses
+app.use(compression());
+
 // Use API_PORT (4000) - DO NOT use PORT env var as that's for nginx (8080) on Railway
 const PORT = process.env.API_PORT || 4000;
 
