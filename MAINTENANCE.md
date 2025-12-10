@@ -2,12 +2,16 @@
 
 This maintenance guide explains how to run, debug, and maintain the ECU Tuning Service repository (`ecu-tuning`) for developers and operators. It focuses on the local Windows development environment using PowerShell, and also notes Docker usage.
 
+**Last Updated:** December 10, 2025
+
 **Quick summary**
 - API: `server.js` — default port `4000`
 - Client UI: `client-server.js` — default port `3000`
 - Admin UI: `admin-server.js` — default port `3001`
 - Database: `database.sqlite` via `database.js` (SQLite)
 - Uploads: `uploads/` and modified files in `uploads/modified/`
+- Email: Resend API (Railway) or SMTP (local)
+- Performance: Gzip compression, static caching, optimized CSS animations
 
 **Quick start (local, Windows PowerShell)**
 - Start everything (stops blockers → starts emulators + API + client + admin in new windows):
@@ -71,7 +75,17 @@ Get-Process node -ErrorAction SilentlyContinue | Stop-Process -Force
 - `ADMIN_PORT` — admin UI (default `3001`)
 - `CLIENT_API_BASE_URL` / `ADMIN_API_BASE_URL` — frontend `config.js` injection
 - `ALLOWED_ORIGINS` — CORS origins (comma-separated)
-- SMTP/Twilio variables (optional): `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_WHATSAPP_NUMBER`
+- Email variables: `RESEND_API_KEY` (recommended for Railway), `ADMIN_EMAIL` (receive new order alerts)
+- SMTP variables (local dev): `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`
+- Twilio variables (optional): `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_WHATSAPP_NUMBER`
+- Railway: `DATA_DIR=/app/data` for persistent volume storage
+
+**Email configuration**
+- **Resend API (Production/Railway):** Set `RESEND_API_KEY` - works on Railway where SMTP ports are blocked
+- **SMTP (Local Dev):** Set `SMTP_USER` and `SMTP_PASS` for Gmail
+- **Admin alerts:** Set `ADMIN_EMAIL` to receive new order notifications
+- **Customer notifications:** Modified files are sent as email attachments
+- **Note:** Resend free tier requires domain verification to send to non-account emails
 
 **What `config.js` does**
 - Both `client-server.js` and `admin-server.js` expose `/config.js` which injects `window.API_BASE_URL` — this is how frontends locate the API at runtime.

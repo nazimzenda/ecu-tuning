@@ -3,6 +3,8 @@
 
 This file tells AI coding agents the repository-specific facts and quick actions needed to be productive.
 
+**Last Updated:** December 10, 2025
+
 Core architecture (big picture)
 - Three Node servers at repo root:
   - `server.js` — API: handles file uploads, creates orders, stores metadata, sends notifications (default `API_PORT=4000`).
@@ -10,6 +12,15 @@ Core architecture (big picture)
   - `admin-server.js` — serves admin UI and `/config.js` for runtime API base URL (default `ADMIN_PORT=3001`).
 - Persistence: local SQLite via `database.js`. Optional Firestore adapter lives at `db/firestore-adapter.js` and is activated with `USE_FIREBASE=1`.
 - File storage: `uploads/` (originals) and `uploads/modified/` (outputs). Optional Firebase Storage upload helper used when `USE_FIREBASE` is enabled.
+- Email: Resend API (recommended for Railway) or SMTP via Nodemailer. Modified files are sent as email attachments.
+- Performance: All servers use gzip compression and static file caching.
+
+Email System
+- Primary: Resend API (`RESEND_API_KEY`) - HTTP-based, works on Railway where SMTP ports are blocked
+- Fallback: SMTP via Nodemailer (`SMTP_USER`, `SMTP_PASS`) - for local development
+- Admin notifications: Set `ADMIN_EMAIL` to receive alerts for new orders
+- Customer notifications: Modified files sent as email attachments
+- Note: Resend free tier only sends to verified email; verify domain at resend.com/domains to send to any address
 
 Local developer workflows
 - Typical local start (explicit):

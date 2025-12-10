@@ -2,6 +2,8 @@
 
 A complete, production-ready web application for professional ECU tuning services. Clients can upload ECU files, select tuning services, track orders, and receive notifications. Admins manage orders through a powerful admin panel with detailed order views.
 
+**Live Demo:** Deployed on Railway with SQLite database and Resend email integration.
+
 ---
 
 ## ✨ Features
@@ -10,10 +12,10 @@ A complete, production-ready web application for professional ECU tuning service
 - **Multi-Format Support**: Upload `.bin`, `.hex`, `.ori`, `.winols`, `.dam` files (up to 50MB)
 - **7 Professional Services**: DPF Delete, EGR Delete, DTC Removal, AdBlue/SCR Delete, VMAX Remove, Stage 1 Tune, Custom
 - **Vehicle Information**: Capture make, model, year, engine specs
-- **Smart Notifications**: Email + WhatsApp alerts when files are ready
+- **Smart Notifications**: Email notifications when files are ready (with file attachment!)
 - **Order Tracking**: Get order ID instantly after upload
 - **Download Portal**: Secure download of modified files
-- **Modern UI**: Responsive design with gray/black/yellow theme
+- **Modern UI**: Responsive design with gray/black/yellow theme, optimized animations
 
 ### 🔐 Admin Panel (Port 3001)
 - **Secure Login**: Password-protected admin access
@@ -24,15 +26,26 @@ A complete, production-ready web application for professional ECU tuning service
 - **Status Updates**: Change order status (pending → processing → completed)
 - **File Downloads**: Download both original and modified files
 - **Order Deletion**: Remove completed or cancelled orders
-- **Auto Notifications**: Email & WhatsApp sent automatically on status change
+- **Auto Notifications**: Email sent automatically when modified file is uploaded
+- **Admin Alerts**: Receive email notification for new orders with direct link to admin panel
 
 ### 🔧 API Server (Port 4000)
 - **RESTful API**: Complete CRUD operations for orders
 - **File Management**: Secure upload/download with validation
 - **Database Options**: SQLite (default) or Firebase Firestore
-- **Notification System**: Integrated Twilio (WhatsApp) + Nodemailer (email)
+- **Email System**: Resend API (for Railway/production) or SMTP (local development)
+- **File Attachments**: Modified files sent directly as email attachments
+- **Gzip Compression**: All responses compressed for faster loading
 - **Error Handling**: Comprehensive error responses
 - **Health Checks**: `/` endpoint returns API status
+
+### ⚡ Performance Optimizations
+- **Gzip Compression**: All servers use compression middleware
+- **Static File Caching**: 1-day cache for CSS, JS, images in production
+- **CSS Animations**: Optimized with `prefers-reduced-motion` support
+- **GPU Acceleration**: Hardware-accelerated transforms
+- **Preload/Preconnect**: Critical resources loaded early
+- **Deferred Scripts**: JavaScript loads after HTML parsing
 
 ---
 
@@ -224,17 +237,38 @@ npm run migrate:firestore
 
 ---
 
-## 📧 Notifications Setup
+## 📧 Email Notifications Setup
 
-### Email (Nodemailer)
-Set environment variables in `.env`:
+### Option 1: Resend API (Recommended for Railway/Production)
+Resend uses HTTP-based email delivery, which works on Railway where SMTP ports are blocked.
+
 ```env
-EMAIL_SERVICE=gmail
-EMAIL_USER=your-email@gmail.com
-EMAIL_PASSWORD=your-app-password
+RESEND_API_KEY=re_xxxxxxxxxxxx
+EMAIL_FROM=ECU Tuning Pro <noreply@yourdomain.com>
+ADMIN_EMAIL=admin@yourdomain.com
 ```
 
-### WhatsApp (Twilio)
+**Features:**
+- ✅ Works on Railway (no SMTP port issues)
+- ✅ Modified files sent as email attachments
+- ✅ Admin notifications for new orders
+- ✅ Professional email templates
+
+**Setup:**
+1. Sign up at [resend.com](https://resend.com)
+2. Get your API key from the dashboard
+3. (Optional) Verify a custom domain to send to any email address
+4. Add `RESEND_API_KEY` to Railway environment variables
+
+### Option 2: SMTP/Gmail (Local Development)
+```env
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your-email@gmail.com
+SMTP_PASS=your-app-password
+```
+
+### WhatsApp (Twilio - Optional)
 Set environment variables:
 ```env
 TWILIO_ACCOUNT_SID=your-account-sid
