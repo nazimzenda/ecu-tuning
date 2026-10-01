@@ -3,17 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Panel - ECU Tuning Service</title>
+    <title>Admin Panel - AZ Performance</title>
     <link rel="preload" href="styles.css" as="style">
     <link rel="stylesheet" href="styles.css">
     <link rel="preconnect" href="/" crossorigin>
 </head>
 <body>
+    <a class="skip-link" href="#main-content">Skip to content</a>
     <nav class="navbar">
         <div class="container">
             <div class="nav-brand">
                 <span class="logo-icon">⚙️</span>
-                <span class="logo-text">ECU Tuning Pro</span>
+                <span class="logo-text">AZ Performance</span>
             </div>
             <div class="nav-links">
                 <a href="/">Home</a>
@@ -22,7 +23,7 @@
         </div>
     </nav>
 
-    <main class="main-content">
+    <main class="main-content" id="main-content">
         <!-- Login Screen -->
         <section id="loginSection" class="admin-section">
             <div class="container">
@@ -74,7 +75,7 @@
                 <div class="orders-container">
                     <div style="display: flex; gap: 1rem; align-items: center; margin-bottom: 2rem; flex-wrap: wrap;">
                         <h2 class="section-title" style="margin: 0;">Orders</h2>
-                        <input type="text" id="searchInput" placeholder="🔍 Search by name, email, vehicle..." 
+                        <input type="text" id="searchInput" aria-label="Search orders" placeholder="🔍 Search by name, email, vehicle..." 
                                style="flex: 1; min-width: 200px; padding: 0.75rem 1rem; background: rgba(13, 13, 13, 0.9); border: 2px solid rgba(255, 215, 0, 0.3); border-radius: 8px; color: var(--gray-200); font-size: 0.9rem;"
                                oninput="searchOrders(this.value)">
                     </div>
@@ -97,7 +98,7 @@
 
     <footer class="footer">
         <div class="container">
-            <p>&copy; 2024 ECU Tuning Pro. Admin Panel.</p>
+            <p>&copy; 2024 AZ Performance. Admin Panel.</p>
         </div>
     </footer>
 

@@ -5,6 +5,26 @@ let adminSessionId = null;
 let filterStatus = null; // Track current filter
 let searchQuery = ''; // Track search query
 
+// Escape HTML special characters for safe rendering
+function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+const SERVICE_PRICES = {
+    'Stage 1': '200€',
+    'E85': '250€',
+    'FAP': '100€',
+    'EGR': '70€',
+    'FAPEGR': '120€',
+    'AdBlue': '100€',
+    'Utilitaire': '150€',
+    'ImmoOff': '100€',
+    'Recherche': 'Dès 50€',
+    'Diagnostic': '40€',
+    'DTCOff': '40€',
+    'Autres': 'On request'
+};
+
 document.addEventListener('DOMContentLoaded', () => {
     const loginForm = document.getElementById('loginForm');
     const loginSection = document.getElementById('loginSection');
@@ -224,6 +244,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 order.customer_name?.toLowerCase().includes(searchQuery) ||
                 order.customer_email?.toLowerCase().includes(searchQuery) ||
                 order.vehicle_info?.toLowerCase().includes(searchQuery) ||
+                order.ecu_reference?.toLowerCase().includes(searchQuery) ||
                 order.service?.toLowerCase().includes(searchQuery)
             );
         }
@@ -259,11 +280,16 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                     <div class="order-info-item">
                         <div class="order-info-label">Service</div>
-                        <div class="order-info-value">${order.service}</div>
+                        <div class="order-info-value">${order.service} — ${SERVICE_PRICES[order.service] || 'On request'}</div>
+                        <div style="font-size: 0.75rem; opacity: 0.7;">Prices in EUR</div>
                     </div>
                     <div class="order-info-item">
                         <div class="order-info-label">Vehicle</div>
                         <div class="order-info-value">${order.vehicle_info}</div>
+                    </div>
+                    <div class="order-info-item">
+                        <div class="order-info-label">ECU Reference</div>
+                        <div class="order-info-value">${order.ecu_reference ? escapeHtml(order.ecu_reference) : 'Not provided'}</div>
                     </div>
                     <div class="order-info-item">
                         <div class="order-info-label">Customer</div>
@@ -519,6 +545,10 @@ document.addEventListener('DOMContentLoaded', () => {
                         <div style="color: var(--gray-200); font-size: 0.95rem; font-weight: 600; line-height: 1.4; margin-bottom: 0.5rem;">
                             ${order.vehicle_info || 'N/A'}
                         </div>
+                        <div style="background: var(--dark-700); padding: 0.6rem; border-radius: 6px; margin-bottom: 0.5rem;">
+                            <div style="color: var(--gray-500); font-size: 0.7rem; text-transform: uppercase; margin-bottom: 0.2rem;">ECU Reference</div>
+                            <div style="color: var(--gray-200); font-weight: 600;">${order.ecu_reference ? escapeHtml(order.ecu_reference) : 'Not provided'}</div>
+                        </div>
                         <div style="font-size: 0.8rem; color: var(--gray-500); padding-top: 0.5rem; border-top: 1px solid rgba(0, 170, 255, 0.2); margin-top: 0.5rem;">
                             <div>📍 <strong style="color: var(--gray-400);">Info:</strong> ${order.vehicle_info ? 'Complete' : 'Incomplete'}</div>
                         </div>
@@ -531,8 +561,9 @@ document.addEventListener('DOMContentLoaded', () => {
                             <h3 style="color: #ffa500; font-size: 0.9rem; margin: 0; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700;">Service</h3>
                         </div>
                         <div style="color: var(--gray-200); font-size: 0.95rem; font-weight: 600; margin-bottom: 0.5rem;">
-                            ${order.service}
+                            ${order.service} — ${SERVICE_PRICES[order.service] || 'On request'}
                         </div>
+                        <div style="color: var(--gray-500); font-size: 0.75rem; margin-bottom: 0.5rem;">Prices in EUR</div>
                         ${order.custom_service_description ? `
                         <div style="background: rgba(255, 170, 0, 0.1); border-left: 3px solid #ffa500; padding: 0.6rem; border-radius: 4px; margin-top: 0.5rem;">
                             <div style="color: var(--gold); font-size: 0.75rem; text-transform: uppercase; font-weight: 700; margin-bottom: 0.3rem;">📝 Details:</div>

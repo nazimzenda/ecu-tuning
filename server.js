@@ -124,7 +124,24 @@ console.log('   - Admin URL:', ADMIN_URL);
 // Email configuration
 // Priority: Resend API (recommended for Railway) > SMTP (for local dev)
 const resendApiKey = process.env.RESEND_API_KEY || '';
-const emailFrom = process.env.EMAIL_FROM || 'ECU Tuning Pro <onboarding@resend.dev>'; // Use your verified domain
+const emailFrom = process.env.EMAIL_FROM || 'AZ Performance <onboarding@resend.dev>'; // Use your verified domain
+
+// Allowed services (POST /api/orders allowlist) + EUR price lookup (shared by emails)
+const ALLOWED_SERVICES = ['Stage 1', 'E85', 'FAP', 'EGR', 'FAPEGR', 'AdBlue', 'Utilitaire', 'ImmoOff', 'Recherche', 'Diagnostic', 'DTCOff', 'Autres'];
+const SERVICE_PRICES = {
+  'Stage 1': '200€',
+  'E85': '250€',
+  'FAP': '100€',
+  'EGR': '70€',
+  'FAPEGR': '120€',
+  'AdBlue': '100€',
+  'Utilitaire': '150€',
+  'ImmoOff': '100€',
+  'Recherche': 'Dès 50€',
+  'Diagnostic': '40€',
+  'DTCOff': '40€',
+  'Autres': 'On request'
+};
 
 // Legacy SMTP config (fallback for local development)
 const emailUser = process.env.SMTP_USER || process.env.EMAIL_USER || process.env.GMAIL_USER || '';
@@ -169,6 +186,9 @@ const twilioWhatsAppNumber = process.env.TWILIO_WHATSAPP_NUMBER || 'whatsapp:+14
 
 // Simple session storage (in production, use proper session management)
 const adminSessions = new Set();
+
+// Escape HTML special characters for safe email rendering
+const escapeHtml = (s) => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
 // Admin authentication middleware
 function requireAdmin(req, res, next) {
@@ -222,15 +242,19 @@ app.post('/api/orders', upload.single('ecuFile'), async (req, res) => {
       return res.status(400).json({ error: 'No file uploaded' });
     }
 
-    const { service, vehicleInfo, customerName, customerEmail, customerPhone, customServiceDescription } = req.body;
+    const { service, vehicleInfo, ecuReference, customerName, customerEmail, customerPhone, customServiceDescription } = req.body;
 
     if (!service || !vehicleInfo) {
       return res.status(400).json({ error: 'Service and vehicle info are required' });
     }
 
-    // Validate custom service description if Custom is selected
-    if (service === 'Custom' && !customServiceDescription) {
-      return res.status(400).json({ error: 'Custom service description is required for custom modifications' });
+    if (!ALLOWED_SERVICES.includes(service)) {
+      return res.status(400).json({ error: 'Invalid service selected' });
+    }
+
+    // Validate custom service description if Autres is selected
+    if (service === 'Autres' && !customServiceDescription) {
+      return res.status(400).json({ error: 'Autres service description is required for custom modifications' });
     }
 
     // If Firebase is enabled, upload file to storage and set filePath to storage path + downloadURL
@@ -259,6 +283,7 @@ app.post('/api/orders', upload.single('ecuFile'), async (req, res) => {
       service: service,
       customServiceDescription: customServiceDescription || null,
       vehicleInfo: vehicleInfo,
+      ecuReference: (ecuReference || '').trim().slice(0, 100) || null,
       customerName: customerName || 'Anonymous',
       customerEmail: customerEmail || '',
       customerPhone: customerPhone || null,
@@ -531,7 +556,10 @@ async function sendEmailNotification(order, filePath) {
           <h3 style="color: #FFD700; margin-top: 0;">📋 Order Details:</h3>
           <p style="color: #fff;"><strong>Order ID:</strong> #${String(order.id).padStart(3, '0')}</p>
           <p style="color: #fff;"><strong>Service:</strong> ${serviceName}</p>
+          <p style="color: #fff;"><strong>Price:</strong> ${SERVICE_PRICES[serviceName] || 'On request'}</p>
+          <p>Prices in EUR</p>
           <p style="color: #fff;"><strong>Vehicle:</strong> ${vehicleInfo}</p>
+          ${order.ecu_reference ? `<p style="color: #fff;"><strong>ECU Reference:</strong> ${escapeHtml(order.ecu_reference)}</p>` : ''}
           <p style="color: #fff;"><strong>Original File:</strong> ${originalFileName}</p>
           <p style="color: #fff;"><strong>Modified File:</strong> ${modifiedFileName}</p>
         </div>
@@ -540,8 +568,8 @@ async function sendEmailNotification(order, filePath) {
         <p>Download the attached file and flash it to your ECU. If you have any issues with the attachment, please reply to this email.</p>
         
         <p style="color: #888; font-size: 12px; margin-top: 30px;">
-          If you have any questions, please contact us.<br>
-          <strong style="color: #FFD700;">ECU Tuning Pro</strong>
+          If you have any questions, please contact us at +213663334559.<br>
+          <strong style="color: #FFD700;">AZ Performance</strong> - +213663334559
         </p>
       </div>
     `;
@@ -579,7 +607,7 @@ async function sendEmailNotification(order, filePath) {
     // Fallback to SMTP (for local development)
     else if (emailTransporter) {
       const mailOptions = {
-        from: `"ECU Tuning Pro" <${emailUser}>`,
+        from: `"AZ Performance" <${emailUser}>`,
         to: order.customer_email,
         subject: `✅ Your Modified ECU File is Ready - Order #${String(order.id).padStart(3, '0')}`,
         html: emailHtml
@@ -636,7 +664,10 @@ async function sendAdminNotification(order) {
           <p style="color: #fff;"><strong>Email:</strong> ${order.customer_email || 'Not provided'}</p>
           <p style="color: #fff;"><strong>Phone:</strong> ${order.customer_phone || 'Not provided'}</p>
           <p style="color: #fff;"><strong>Vehicle:</strong> ${order.vehicle_info || 'Not specified'}</p>
+          <p style="color: #fff;"><strong>ECU Reference:</strong> ${order.ecu_reference ? escapeHtml(order.ecu_reference) : 'Not provided'}</p>
           <p style="color: #fff;"><strong>Service:</strong> ${order.service || 'Not specified'}</p>
+          <p style="color: #fff;"><strong>Price:</strong> ${SERVICE_PRICES[order.service] || 'On request'}</p>
+          <p>Prices in EUR</p>
           ${order.custom_service_description ? `<p style="color: #fff;"><strong>Custom Request:</strong> ${order.custom_service_description}</p>` : ''}
           <p style="color: #fff;"><strong>Original File:</strong> ${order.original_file_name || 'Unknown'}</p>
         </div>
@@ -648,7 +679,8 @@ async function sendAdminNotification(order) {
         </div>
         
         <p style="color: #888; font-size: 12px; margin-top: 30px; text-align: center;">
-          ECU Tuning Pro - Admin Notification
+          AZ Performance - Admin Notification<br>
+          +213663334559
         </p>
       </div>
     `;
@@ -671,7 +703,7 @@ async function sendAdminNotification(order) {
       console.log('✅ Admin notification sent via Resend:', data?.id);
     } else if (emailTransporter) {
       const info = await emailTransporter.sendMail({
-        from: `"ECU Tuning Pro" <${emailUser}>`,
+        from: `"AZ Performance" <${emailUser}>`,
         to: ADMIN_EMAIL,
         subject: `🚀 New Order #${orderId} - ${order.customer_name || 'Anonymous'} - ${order.service || 'ECU Service'}`,
         html: emailHtml
@@ -699,7 +731,7 @@ async function sendWhatsAppNotification(order) {
         `Service: ${order.service}\n` +
         `Vehicle: ${order.vehicle_info}\n\n` +
         `Your modified file has been sent to your email: ${order.customer_email}\n\n` +
-        `Thank you for using ECU Tuning Pro!`
+        `Thank you for using AZ Performance!`
       )}`;
       console.log(`📱 WhatsApp link: ${whatsappLink}`);
       return;
@@ -713,7 +745,7 @@ async function sendWhatsAppNotification(order) {
             `Service: ${order.service}\n` +
             `Vehicle: ${order.vehicle_info}\n\n` +
             `Your modified file has been sent to your email: ${order.customer_email}\n\n` +
-            `Thank you for using ECU Tuning Pro!`
+            `Thank you for using AZ Performance!`
     });
 
     console.log('✅ WhatsApp message sent successfully:', message.sid);

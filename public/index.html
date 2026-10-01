@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ECU Tuning Service - Professional File Modification</title>
+    <title>AZ Performance - Engine Reprogramming & Automotive Optimization</title>
     <!-- Preload critical CSS -->
     <link rel="preload" href="styles.css" as="style">
     <link rel="stylesheet" href="styles.css">
@@ -13,11 +13,12 @@
     <link rel="preconnect" href="/" crossorigin>
 </head>
 <body>
+    <a class="skip-link" href="#main-content">Skip to content</a>
     <nav class="navbar">
         <div class="container">
             <div class="nav-brand">
                 <span class="logo-icon">⚙️</span>
-                <span class="logo-text">ECU Tuning Pro</span>
+                <span class="logo-text">AZ Performance</span>
             </div>
             <div class="nav-links">
                 <a href="/">Home</a>
@@ -25,11 +26,11 @@
         </div>
     </nav>
 
-    <main class="main-content">
+    <main id="main-content" class="main-content">
         <section class="hero">
             <div class="container" style="position: relative; z-index: 2;">
-                <h1 class="hero-title">Professional ECU File Modification Service</h1>
-                <p class="hero-subtitle">Expert tuning services for your vehicle's ECU. Upload your file, we'll modify it with precision.</p>
+                <h1 class="hero-title">Engine Reprogramming & Automotive Optimization</h1>
+                <p class="hero-subtitle">All Vehicles • Guaranteed Results</p>
             </div>
         </section>
 
@@ -52,7 +53,7 @@
                             <label for="customerPhone">WhatsApp Number (Optional)</label>
                             <input type="tel" id="customerPhone" name="customerPhone" placeholder="+1234567890 (with country code)" pattern="^\+[1-9]\d{1,14}$">
                             <small style="color: var(--text-dark); font-size: 0.85rem; margin-top: 0.25rem; display: block;">
-                                Include country code (e.g., +1234567890). We'll notify you via WhatsApp when your file is ready!
+                                Include country code e.g. +213663334559 – we notify via WhatsApp.
                             </small>
                         </div>
 
@@ -62,26 +63,63 @@
                         </div>
 
                         <div class="form-group">
+                            <label for="ecuReference">ECU Reference / Calculator <span style="color: var(--gray-400); font-weight: 400;">(optional)</span></label>
+                            <input type="text" id="ecuReference" name="ecuReference" list="ecuReferences" maxlength="100"
+                                   placeholder="e.g., EDC17C64, MED17.5, MSD80 — leave blank if unknown">
+                            <datalist id="ecuReferences">
+                                <option value="EDC17C64"></option>
+                                <option value="EDC17C50"></option>
+                                <option value="EDC17C46"></option>
+                                <option value="EDC17CP45"></option>
+                                <option value="EDC16C39"></option>
+                                <option value="EDC16U1"></option>
+                                <option value="MED17.5"></option>
+                                <option value="MED17.1.6"></option>
+                                <option value="MED9.1"></option>
+                                <option value="ME7.5"></option>
+                                <option value="MEVD17.2"></option>
+                                <option value="MSD80"></option>
+                                <option value="MSD81"></option>
+                                <option value="MSS60"></option>
+                                <option value="MSS54"></option>
+                                <option value="SIM2K-260"></option>
+                                <option value="SDI4"></option>
+                                <option value="IAW 7GF"></option>
+                                <option value="MJD 8F3"></option>
+                                <option value="DCM3.5"></option>
+                                <option value="DCM3.7"></option>
+                                <option value="CRD3"></option>
+                                <option value="SID208"></option>
+                                <option value="SID310"></option>
+                            </datalist>
+                        </div>
+
+                        <div class="form-group">
                             <label for="service">Select Service</label>
                             <select id="service" name="service" required>
                                 <option value="">Choose a service...</option>
-                                <option value="DPF Removal">DPF/FPF Delete - Remove Particulate Filter</option>
-                                <option value="EGR Delete">EGR Off - Disable Exhaust Gas Recirculation</option>
-                                <option value="DTC Removal">DTC Removal - Delete Specific Fault Codes</option>
-                                <option value="AdBlue Delete">AdBlue/SCR Delete - Remove Urea System</option>
-                                <option value="VMAX Remove">VMAX Remove - Delete Speed Limiter</option>
-                                <option value="Stage 1 Tune">Stage 1 Tune - Basic Performance Upgrade</option>
-                                <option value="Custom">Custom Modification - Write Your Specific Request</option>
+                                <option value="Stage 1">STAGE 1 - 200€</option>
+                                <option value="E85">CONVERSION E85 - 250€</option>
+                                <option value="FAP">Solution FAP - 100€</option>
+                                <option value="EGR">Solution EGR - 70€</option>
+                                <option value="FAPEGR">FAP + EGR - 120€</option>
+                                <option value="AdBlue">Solution AD Blue - 100€</option>
+                                <option value="Utilitaire">UTILITAIRE (FAP+EGR+AdBlue) - 150€</option>
+                                <option value="ImmoOff">IMMO OFF - 100€</option>
+                                <option value="Recherche">RECHERCHE DE PANNE - Dès 50€</option>
+                                <option value="Diagnostic">DIAGNOSTIC - 40€</option>
+                                <option value="DTCOff">DTC OFF - 40€</option>
+                                <option value="Autres">AUTRES PRESTATIONS - SUR DEMANDE</option>
                             </select>
                         </div>
 
                         <div class="form-group" id="customServiceGroup" style="display: none;">
-                            <label for="customServiceDescription">Custom Service Description *</label>
+                            <label for="customServiceDescription">Specialized Tuning Description *</label>
                             <textarea 
                                 id="customServiceDescription" 
                                 name="customServiceDescription" 
                                 rows="4" 
-                                placeholder="Please describe in detail what modifications you need. For example: 'Remove DPF and EGR, increase boost to 1.8 bar, remove speed limiter, and optimize fuel injection maps for Stage 2 performance...'"
+                                placeholder="Please describe in detail what modifications you need. For example: Ethanol conversion, Stage 1 performance upgrade, FAP+EGR solution, or your custom needs..."
                                 style="padding: 12px 16px; background: var(--dark-gray); border: 2px solid var(--border-color); border-radius: 6px; color: var(--text-light); font-size: 1rem; font-family: inherit; resize: vertical; width: 100%; transition: all 0.3s;"
                             ></textarea>
                             <small style="color: var(--text-dark); font-size: 0.85rem; margin-top: 0.25rem; display: block;">
@@ -114,88 +152,263 @@
                 <h2 class="section-title">🔧 Our Premium Services</h2>
                 <p class="section-subtitle">Professional ECU modifications tailored to your vehicle's needs</p>
                 <div class="services-grid">
-                    <div class="service-card" data-service="dpf">
-                        <div class="service-background"></div>
-                        <div class="service-content">
-                            <div class="service-icon">🔥</div>
-                            <h3 class="service-title">DPF/FPF Delete</h3>
-                            <p class="service-description">Remove particulate filter regeneration cycles and disable monitoring</p>
-                            <ul class="service-features">
-                                <li>✓ Eliminates regeneration issues</li>
-                                <li>✓ Prevents filter clogging</li>
-                                <li>✓ Improves fuel economy</li>
-                            </ul>
+                    <!-- Performance group -->
+                    <div class="service-group" data-group="performance">
+                        <h3 class="service-group-title">Performance</h3>
+                        <div class="service-card" data-service="stage1">
+                            <div class="service-background"></div>
+                            <div class="service-content">
+                                <div class="service-icon">⚡</div>
+                                <h3 class="service-title">Stage 1 - 200€</h3>
+                                <p class="service-description">Performance upgrade with optimized fuel injection and boost</p>
+                                <ul class="service-features">
+                                    <li>✓ +15-30% horsepower</li>
+                                    <li>✓ +20-40% torque</li>
+                                    <li>✓ Optimized fuel maps</li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <div class="service-card" data-service="e85">
+                            <div class="service-background"></div>
+                            <div class="service-content">
+                                <div class="service-icon">🌿</div>
+                                <h3 class="service-title">Conversion E85 - 250€</h3>
+                                <p class="service-description">Convert your vehicle to run on E85 bioethanol fuel</p>
+                                <ul class="service-features">
+                                    <li>✓ Lower fuel costs</li>
+                                    <li>✓ Optimized ethanol maps</li>
+                                    <li>✓ Eco-friendly performance</li>
+                                </ul>
+                            </div>
                         </div>
                     </div>
-                    
-                    <div class="service-card" data-service="egr">
-                        <div class="service-background"></div>
-                        <div class="service-content">
-                            <div class="service-icon">💨</div>
-                            <h3 class="service-title">EGR Delete</h3>
-                            <p class="service-description">Close exhaust gas recirculation valves and disable monitoring</p>
-                            <ul class="service-features">
-                                <li>✓ Better engine performance</li>
-                                <li>✓ Reduced carbon buildup</li>
-                                <li>✓ Improved throttle response</li>
-                            </ul>
+
+                    <!-- Anti-pollution group -->
+                    <div class="service-group" data-group="anti-pollution">
+                        <h3 class="service-group-title">Anti-pollution</h3>
+                        <div class="service-card" data-service="fap">
+                            <div class="service-background"></div>
+                            <div class="service-content">
+                                <div class="service-icon">🔥</div>
+                                <h3 class="service-title">Solution FAP - 100€</h3>
+                                <p class="service-description">Reliable solution for particulate filter issues</p>
+                                <ul class="service-features">
+                                    <li>✓ Eliminates regeneration issues</li>
+                                    <li>✓ Improved engine reliability</li>
+                                    <li>✓ Clean diagnostic scan</li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <div class="service-card" data-service="egr">
+                            <div class="service-background"></div>
+                            <div class="service-content">
+                                <div class="service-icon">♻️</div>
+                                <h3 class="service-title">Solution EGR - 70€</h3>
+                                <p class="service-description">Reliable solution for EGR valve issues</p>
+                                <ul class="service-features">
+                                    <li>✓ Reduced carbon buildup</li>
+                                    <li>✓ Improved reliability</li>
+                                    <li>✓ Clean diagnostic scan</li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <div class="service-card" data-service="fap-egr">
+                            <div class="service-background"></div>
+                            <div class="service-content">
+                                <div class="service-icon">🔥</div>
+                                <h3 class="service-title">FAP + EGR - 120€</h3>
+                                <p class="service-description">Reliable solution for particulate filter and EGR issues</p>
+                                <ul class="service-features">
+                                    <li>✓ Eliminates regeneration issues</li>
+                                    <li>✓ Reduced carbon buildup</li>
+                                    <li>✓ Improved engine reliability</li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <div class="service-card" data-service="adblue">
+                            <div class="service-background"></div>
+                            <div class="service-content">
+                                <div class="service-icon">💧</div>
+                                <h3 class="service-title">Solution AD Blue - 100€</h3>
+                                <p class="service-description">Reliable solution for AdBlue system faults</p>
+                                <ul class="service-features">
+                                    <li>✓ No more AdBlue warnings</li>
+                                    <li>✓ Improved reliability</li>
+                                    <li>✓ Clean diagnostic scan</li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <div class="service-card" data-service="utilitaire">
+                            <div class="service-background"></div>
+                            <div class="service-content">
+                                <div class="service-icon">🚚</div>
+                                <h3 class="service-title">UTILITAIRE (FAP+EGR+AdBlue) - 150€</h3>
+                                <p class="service-description">Complete anti-pollution solution for utility vehicles</p>
+                                <ul class="service-features">
+                                    <li>✓ FAP + EGR + AdBlue</li>
+                                    <li>✓ Improved reliability</li>
+                                    <li>✓ Reduced downtime</li>
+                                </ul>
+                            </div>
                         </div>
                     </div>
-                    
-                    <div class="service-card" data-service="dtc">
-                        <div class="service-background"></div>
-                        <div class="service-content">
-                            <div class="service-icon">🔧</div>
-                            <h3 class="service-title">DTC Removal</h3>
-                            <p class="service-description">Eliminate specific fault codes and prevent check engine lights</p>
-                            <ul class="service-features">
-                                <li>✓ Remove error codes</li>
-                                <li>✓ Clear check engine light</li>
-                                <li>✓ Clean diagnostic scan</li>
-                            </ul>
+
+                    <!-- Electronique / Diagnostic group -->
+                    <div class="service-group" data-group="electronique-diagnostic">
+                        <h3 class="service-group-title">Electronique / Diagnostic</h3>
+                        <div class="service-card" data-service="immo-off">
+                            <div class="service-background"></div>
+                            <div class="service-content">
+                                <div class="service-icon">🔑</div>
+                                <h3 class="service-title">IMMO OFF - 100€</h3>
+                                <p class="service-description">Immobilizer solution for starting issues</p>
+                                <ul class="service-features">
+                                    <li>✓ Resolve immobilizer faults</li>
+                                    <li>✓ ECU replacement support</li>
+                                    <li>✓ Tested start-up</li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <div class="service-card" data-service="recherche">
+                            <div class="service-background"></div>
+                            <div class="service-content">
+                                <div class="service-icon">🛠️</div>
+                                <h3 class="service-title">RECHERCHE DE PANNE - Dès 50€</h3>
+                                <p class="service-description">In-depth fault finding for complex breakdowns</p>
+                                <ul class="service-features">
+                                    <li>✓ Full fault analysis</li>
+                                    <li>✓ Expert diagnosis</li>
+                                    <li>✓ Repair guidance</li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <div class="service-card" data-service="diagnostic">
+                            <div class="service-background"></div>
+                            <div class="service-content">
+                                <div class="service-icon">🔍</div>
+                                <h3 class="service-title">DIAGNOSTIC - 40€</h3>
+                                <p class="service-description">Complete electronic diagnostic of your vehicle</p>
+                                <ul class="service-features">
+                                    <li>✓ Full system scan</li>
+                                    <li>✓ Detailed report</li>
+                                    <li>✓ Expert advice</li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <div class="service-card" data-service="dtc-off">
+                            <div class="service-background"></div>
+                            <div class="service-content">
+                                <div class="service-icon">🔧</div>
+                                <h3 class="service-title">DTC OFF - 40€</h3>
+                                <p class="service-description">Eliminate specific fault codes and prevent check engine lights</p>
+                                <ul class="service-features">
+                                    <li>✓ Remove error codes</li>
+                                    <li>✓ Clear check engine light</li>
+                                    <li>✓ Clean diagnostic scan</li>
+                                </ul>
+                            </div>
                         </div>
                     </div>
-                    
-                    <div class="service-card" data-service="stage1">
-                        <div class="service-background"></div>
-                        <div class="service-content">
-                            <div class="service-icon">⚡</div>
-                            <h3 class="service-title">Stage 1 Tune</h3>
-                            <p class="service-description">Performance upgrade with optimized fuel injection and boost</p>
-                            <ul class="service-features">
-                                <li>✓ +15-30% horsepower</li>
-                                <li>✓ +20-40% torque</li>
-                                <li>✓ Optimized fuel maps</li>
-                            </ul>
+
+                    <!-- Autres group -->
+                    <div class="service-group" data-group="autres">
+                        <h3 class="service-group-title">Autres</h3>
+                        <div class="service-card" data-service="autres">
+                            <div class="service-background"></div>
+                            <div class="service-content">
+                                <div class="service-icon">⭐</div>
+                                <h3 class="service-title">AUTRES PRESTATIONS - SUR DEMANDE</h3>
+                                <p class="service-description">Autres prestations sur demande - contact us for a quote</p>
+                                <ul class="service-features">
+                                    <li>✓ Tailored modifications</li>
+                                    <li>✓ Expert advice</li>
+                                    <li>✓ On request pricing</li>
+                                </ul>
+                            </div>
                         </div>
                     </div>
-                    
-                    <div class="service-card" data-service="adblue">
-                        <div class="service-background"></div>
-                        <div class="service-content">
-                            <div class="service-icon">🚫</div>
-                            <h3 class="service-title">AdBlue Delete</h3>
-                            <p class="service-description">Remove urea system and related monitoring functions</p>
-                            <ul class="service-features">
-                                <li>✓ No more DEF refills</li>
-                                <li>✓ Eliminates system failures</li>
-                                <li>✓ Reduced maintenance costs</li>
-                            </ul>
-                        </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="vehicle-coverage" id="vehicle-coverage">
+            <div class="container">
+                <h2 class="section-title">Supported Vehicles</h2>
+                <p class="section-subtitle">From daily drivers to performance builds — our engineers map and tune ECUs across all major brands.</p>
+                <div class="coverage-stats">
+                    <div class="stat-item">
+                        <span class="stat-number" data-target="2500">0</span><span class="stat-suffix">+</span>
+                        <div class="stat-label">ECUs Tuned</div>
                     </div>
-                    
-                    <div class="service-card" data-service="vmax">
-                        <div class="service-background"></div>
-                        <div class="service-content">
-                            <div class="service-icon">🏁</div>
-                            <h3 class="service-title">VMAX Remove</h3>
-                            <p class="service-description">Delete speed limiter for unrestricted performance</p>
-                            <ul class="service-features">
-                                <li>✓ Unlock top speed</li>
-                                <li>✓ Remove factory limits</li>
-                                <li>✓ Full performance potential</li>
-                            </ul>
-                        </div>
+                    <div class="stat-item">
+                        <span class="stat-number" data-target="35">0</span><span class="stat-suffix">+</span>
+                        <div class="stat-label">Brands Supported</div>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number" data-target="300">0</span><span class="stat-suffix">+</span>
+                        <div class="stat-label">Models Mapped</div>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number" data-target="48">0</span>
+                        <div class="stat-label">Hour Avg Turnaround</div>
+                    </div>
+                </div>
+                <div class="brands-grid">
+                    <div class="brand-card">
+                        <div class="brand-name">BMW</div>
+                        <div class="brand-ecus">EDC17C64 · MSD80 · MEVD17.2</div>
+                    </div>
+                    <div class="brand-card">
+                        <div class="brand-name">Audi</div>
+                        <div class="brand-ecus">EDC17C46 · MED17.1 · Simos 18</div>
+                    </div>
+                    <div class="brand-card">
+                        <div class="brand-name">Volkswagen</div>
+                        <div class="brand-ecus">EDC17C64 · EDC17CP45 · MED17.5</div>
+                    </div>
+                    <div class="brand-card">
+                        <div class="brand-name">Mercedes-Benz</div>
+                        <div class="brand-ecus">CRD3 · MED17.7 · EDC17C50</div>
+                    </div>
+                    <div class="brand-card">
+                        <div class="brand-name">Opel</div>
+                        <div class="brand-ecus">MJD 8F3 · EDC17C59 · DCM3.7</div>
+                    </div>
+                    <div class="brand-card">
+                        <div class="brand-name">Ford</div>
+                        <div class="brand-ecus">SID208 · SID310 · SIM2K</div>
+                    </div>
+                    <div class="brand-card">
+                        <div class="brand-name">Renault</div>
+                        <div class="brand-ecus">EDC17C42 · CRD3 · MED17</div>
+                    </div>
+                    <div class="brand-card">
+                        <div class="brand-name">Peugeot/Citroën</div>
+                        <div class="brand-ecus">EDC17C60 · MEV17.4 · IAW</div>
+                    </div>
+                    <div class="brand-card">
+                        <div class="brand-name">Fiat</div>
+                        <div class="brand-ecus">MJD 8F3 · EDC16C39 · IAW 7GF</div>
+                    </div>
+                    <div class="brand-card">
+                        <div class="brand-name">Toyota</div>
+                        <div class="brand-ecus">Denso SH7058 · DCM3.7</div>
+                    </div>
+                    <div class="brand-card">
+                        <div class="brand-name">Škoda</div>
+                        <div class="brand-ecus">EDC17C46 · MED17.5 · Simos</div>
+                    </div>
+                    <div class="brand-card">
+                        <div class="brand-name">Seat</div>
+                        <div class="brand-ecus">EDC17C46 · MED17.1 · Simos</div>
                     </div>
                 </div>
             </div>
@@ -227,7 +440,7 @@
 
     <footer class="footer">
         <div class="container">
-            <p>&copy; 2024 ECU Tuning Pro. Professional ECU File Modification Service.</p>
+            <p>&copy; AZ Performance. Phone/WhatsApp +213663334559 | TikTok moh.prog | Facebook AZ performance.</p>
         </div>
     </footer>
 

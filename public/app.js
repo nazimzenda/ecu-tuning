@@ -15,7 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Show/hide custom service description based on service selection
     serviceSelect.addEventListener('change', (e) => {
-        if (e.target.value === 'Custom') {
+        if (e.target.value === 'Autres') {
             customServiceGroup.style.display = 'block';
             customServiceDescription.setAttribute('required', 'required');
         } else {
@@ -49,15 +49,15 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // Validate custom service description if Custom is selected
-        if (serviceSelect.value === 'Custom' && !customServiceDescription.value.trim()) {
+        // Validate custom service description if Autres is selected
+        if (serviceSelect.value === 'Autres' && !customServiceDescription.value.trim()) {
             showMessage('Please provide a description for your custom service request', 'error');
             customServiceGroup.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
             return;
         }
 
         // Add custom service description to form data if provided (replace existing field)
-        if (serviceSelect.value === 'Custom' && customServiceDescription.value.trim()) {
+        if (serviceSelect.value === 'Autres' && customServiceDescription.value.trim()) {
             // use set() to replace any value that FormData(form) may have captured
             formData.set('customServiceDescription', customServiceDescription.value.trim());
         }
@@ -104,4 +104,48 @@ document.addEventListener('DOMContentLoaded', () => {
         messageDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
 });
+
+// Animated stat counters for the vehicle coverage section
+(function () {
+    const counters = document.querySelectorAll('.stat-number[data-target]');
+    if (!counters.length) return;
+
+    const ANIMATION_DURATION = 1200;
+
+    function animateCounter(el) {
+        const target = parseInt(el.getAttribute('data-target'), 10);
+        if (isNaN(target)) return;
+
+        const startTime = performance.now();
+
+        function frame(now) {
+            const progress = Math.min((now - startTime) / ANIMATION_DURATION, 1);
+            const eased = 1 - Math.pow(1 - progress, 3); // ease-out cubic
+            el.textContent = Math.round(eased * target).toLocaleString();
+            if (progress < 1) {
+                requestAnimationFrame(frame);
+            }
+        }
+
+        requestAnimationFrame(frame);
+    }
+
+    if (document.querySelector('.stat-number')) {
+        if ('IntersectionObserver' in window) {
+            const observer = new IntersectionObserver((entries, obs) => {
+                entries.forEach((entry) => {
+                    if (entry.isIntersecting) {
+                        animateCounter(entry.target);
+                        obs.unobserve(entry.target);
+                    }
+                });
+            }, { threshold: 0.5 });
+
+            counters.forEach((counter) => observer.observe(counter));
+        } else {
+            // Fallback: run immediately if IntersectionObserver is unsupported
+            counters.forEach(animateCounter);
+        }
+    }
+})();
 

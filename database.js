@@ -65,6 +65,10 @@ function createTables() {
       db.run(`ALTER TABLE orders ADD COLUMN customer_phone TEXT`, () => {
         // Ignore error if column already exists
       });
+      // Add ecu_reference column if it doesn't exist
+      db.run(`ALTER TABLE orders ADD COLUMN ecu_reference TEXT`, () => {
+        // Ignore error if column already exists
+      });
       console.log('✅ Database tables created');
       resolve();
     });
@@ -76,8 +80,8 @@ function createOrder(orderData) {
     const sql = `
       INSERT INTO orders (
         original_file_name, stored_file_name, file_path,
-        service, custom_service_description, vehicle_info, customer_name, customer_email, customer_phone, status
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        service, custom_service_description, vehicle_info, ecu_reference, customer_name, customer_email, customer_phone, status
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
     db.run(sql, [
@@ -87,6 +91,7 @@ function createOrder(orderData) {
       orderData.service,
       orderData.customServiceDescription || null,
       orderData.vehicleInfo,
+      orderData.ecuReference || null,
       orderData.customerName,
       orderData.customerEmail,
       orderData.customerPhone || null,

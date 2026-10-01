@@ -25,7 +25,7 @@
     --gray-200: #e0e0e0;
     --gray-300: #c0c0c0;
     --gray-400: #999999;
-    --gray-500: #666666;
+    --gray-500: #797979;
     --gray-600: #4a4a4a;
     
     /* Status Colors */
@@ -73,6 +73,12 @@
     --font-display: 'Inter', 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
     --font-body: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     --font-mono: 'Fira Code', 'Courier New', monospace;
+
+    /* Semantic aliases used by inline styles on client/admin pages */
+    --text-dark: var(--gray-300);
+    --text-light: var(--gray-200);
+    --border-color: #2d2d2d;
+    --dark-gray: #1a1a1a;
 }
 
 /* === RESET & BASE === */
@@ -154,13 +160,7 @@ a:hover {
 .container {
     max-width: 1400px;
     margin: 0 auto;
-    padding: 0 var(--space-xl);
-}
-
-@media (max-width: 768px) {
-    .container {
-        padding: 0 var(--space-md);
-    }
+    padding: 0 clamp(1rem, 4vw, 2rem);
 }
 
 /* === NAVIGATION === */
@@ -223,10 +223,7 @@ a:hover {
 }
 
 .logo-text {
-    background: var(--gradient-primary);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    color: var(--gold);
 }
 
 .nav-links {
@@ -243,6 +240,9 @@ a:hover {
     border-radius: var(--radius-full);
     transition: all var(--transition-base);
     overflow: hidden;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
 }
 
 .nav-links a::before {
@@ -267,16 +267,17 @@ a:hover {
 .nav-links a.active {
     color: var(--dark-900);
     transform: translateY(-2px);
+    background: var(--gradient-primary);
 }
 
 /* === HERO SECTION === */
 .hero {
     position: relative;
-    padding: calc(var(--space-3xl) + 80px) 0 var(--space-3xl);
+    padding: clamp(3rem, 8vw, 4rem) 0;
     text-align: center;
     overflow: hidden;
     background: 
-        linear-gradient(135deg, rgba(0, 0, 0, 0.75) 0%, rgba(10, 10, 10, 0.8) 25%, rgba(0, 0, 0, 0.7) 75%, rgba(20, 20, 20, 0.78) 100%),
+        linear-gradient(135deg, rgba(0, 0, 0, 0.92) 0%, rgba(10, 10, 10, 0.94) 25%, rgba(0, 0, 0, 0.92) 75%, rgba(15, 15, 15, 0.94) 100%),
         url('hero-bg.png') center/cover fixed;
     background-attachment: fixed;
     background-size: cover;
@@ -286,6 +287,9 @@ a:hover {
     align-items: center;
     justify-content: center;
     box-shadow: inset 0 0 60px rgba(0, 0, 0, 0.6), inset 0 0 30px rgba(255, 215, 0, 0.1);
+    /* Fade hero bottom edge into the next section */
+    mask-image: linear-gradient(to bottom, black 88%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to bottom, black 88%, transparent 100%);
 }
 
 .hero::before {
@@ -310,10 +314,7 @@ a:hover {
     position: relative;
     font-size: clamp(2.5rem, 6vw, 5rem);
     font-weight: 900;
-    background: linear-gradient(135deg, #ffffff 0%, var(--gold) 50%, var(--gold-light) 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    color: #ffffff;
     margin-bottom: var(--space-lg);
     letter-spacing: -0.03em;
     animation: titleSlideIn 1s ease-out;
@@ -330,7 +331,7 @@ a:hover {
 .hero-subtitle {
     position: relative;
     font-size: clamp(1rem, 2vw, 1.5rem);
-    color: var(--gray-300);
+    color: var(--gray-200);
     margin-bottom: var(--space-3xl);
     line-height: 1.8;
     animation: subtitleFadeIn 1.2s ease-out;
@@ -445,6 +446,11 @@ a:hover {
     color: var(--gold);
     text-transform: uppercase;
     letter-spacing: 0.05em;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    column-gap: var(--space-sm);
 }
 
 .form-group input,
@@ -713,10 +719,7 @@ a:hover {
 
 .admin-title {
     font-size: 2.5rem;
-    background: var(--gradient-primary);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    color: var(--gold);
 }
 
 /* Stats Grid */
@@ -771,10 +774,7 @@ a:hover {
 .stat-value {
     font-size: 3rem;
     font-weight: 900;
-    background: var(--gradient-primary);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    color: var(--gold);
     line-height: 1;
 }
 
@@ -922,10 +922,7 @@ a:hover {
 
 .modal-title {
     font-size: 2rem;
-    background: var(--gradient-primary);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    color: var(--gold);
 }
 
 .modal-close {
@@ -1152,7 +1149,7 @@ a:hover {
 
 /* === SERVICES SECTION === */
 .services-section {
-    padding: var(--space-3xl) 0;
+    padding: clamp(3rem, 8vw, 4rem) 0;
     position: relative;
     overflow: hidden;
 }
@@ -1172,10 +1169,7 @@ a:hover {
     font-size: clamp(2rem, 4vw, 3rem);
     text-align: center;
     margin-bottom: var(--space-md);
-    background: var(--gradient-primary);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    color: var(--gold);
 }
 
 .section-subtitle {
@@ -1190,9 +1184,22 @@ a:hover {
 
 .services-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 480px), 1fr));
     gap: var(--space-xl);
     position: relative;
+}
+
+.service-group {
+    display: grid;
+    gap: var(--space-lg);
+    align-content: start;
+}
+
+.service-group-title {
+    color: var(--gold);
+    font-size: clamp(1.5rem, 2.5vw, 2rem);
+    font-weight: 800;
+    margin-bottom: var(--space-md);
 }
 
 .service-card {
@@ -1200,7 +1207,7 @@ a:hover {
     background: var(--dark-700);
     border-radius: var(--radius-xl);
     overflow: hidden;
-    border: 1px solid rgba(255, 215, 0, 0.1);
+    border: 1px solid rgba(255, 215, 0, 0.4);
     transition: all var(--transition-base);
     cursor: pointer;
     height: 100%;
@@ -1389,13 +1396,13 @@ a:hover {
 
 /* === PROCESS SECTION === */
 .process-section {
-    padding: var(--space-3xl) 0;
+    padding: clamp(3rem, 8vw, 4rem) 0;
     background: linear-gradient(180deg, transparent 0%, rgba(255, 215, 0, 0.03) 100%);
 }
 
 .process-steps {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
     gap: var(--space-2xl);
     margin-top: var(--space-3xl);
     position: relative;
@@ -1484,7 +1491,7 @@ a:hover {
 /* === FOOTER === */
 .footer {
     background: var(--dark-800);
-    border-top: 1px solid rgba(255, 215, 0, 0.2);
+    border-top: 1px solid rgba(255, 215, 0, 0.4);
     padding: var(--space-2xl) 0;
     text-align: center;
     margin-top: var(--space-3xl);
@@ -1497,25 +1504,25 @@ a:hover {
 
 /* Upload Section Spacing */
 .upload-section {
-    padding: var(--space-3xl) 0;
+    padding: clamp(3rem, 8vw, 4rem) 0;
 }
 
 /* === ADMIN PANEL STYLING === */
 .main-content {
     position: relative;
     background: 
-        linear-gradient(135deg, rgba(0, 0, 0, 0.75) 0%, rgba(10, 10, 10, 0.8) 25%, rgba(0, 0, 0, 0.7) 75%, rgba(20, 20, 20, 0.78) 100%),
+        linear-gradient(135deg, rgba(0, 0, 0, 0.9) 0%, rgba(10, 10, 10, 0.92) 25%, rgba(0, 0, 0, 0.9) 75%, rgba(20, 20, 20, 0.9) 100%),
         url('hero-bg.png') center/cover fixed;
     background-attachment: fixed;
     background-size: cover;
     background-position: center;
     min-height: 100vh;
-    padding: var(--space-3xl) 0;
+    padding: clamp(3rem, 8vw, 4rem) 0;
     box-shadow: inset 0 0 60px rgba(0, 0, 0, 0.6), inset 0 0 30px rgba(255, 215, 0, 0.1);
 }
 
 .admin-section {
-    padding: var(--space-3xl) 0;
+    padding: clamp(3rem, 8vw, 4rem) 0;
     min-height: 100vh;
     display: flex;
     align-items: center;
@@ -1526,10 +1533,7 @@ a:hover {
     position: relative;
     font-size: clamp(2rem, 5vw, 3.5rem);
     font-weight: 900;
-    background: linear-gradient(135deg, #ffffff 0%, var(--gold) 50%, var(--gold-light) 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    color: var(--gold);
     margin-bottom: var(--space-xl);
     letter-spacing: -0.02em;
     z-index: 3;
@@ -1538,13 +1542,12 @@ a:hover {
 }
 
 .login-card {
-    background: rgba(13, 13, 13, 0.95);
+    background: #0d0d0d;
     border: 2px solid rgba(255, 215, 0, 0.3);
     border-radius: 16px;
     padding: var(--space-3xl);
     max-width: 450px;
     width: 100%;
-    backdrop-filter: blur(20px);
     box-shadow: 
         0 0 60px rgba(255, 215, 0, 0.2),
         0 0 30px rgba(0, 170, 255, 0.1),
@@ -1665,6 +1668,16 @@ a:hover {
     margin: 0 auto;
 }
 
+/* === ACCESSIBILITY UTILITIES === */
+.skip-link {
+    position: absolute; top: 0; left: -9999px; z-index: 4000;
+    padding: var(--space-md) var(--space-lg);
+    background: var(--gold); color: var(--dark-900);
+    font-weight: 700; border-radius: 0 0 var(--radius-md) 0;
+}
+.skip-link:focus { left: 0; }
+a:focus-visible, button:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+
 /* === PERFORMANCE OPTIMIZATIONS === */
 /* Disable all animations for users who prefer reduced motion */
 @media (prefers-reduced-motion: reduce) {
@@ -1684,4 +1697,79 @@ a:hover {
 /* Optimize font rendering */
 body {
     text-rendering: optimizeSpeed;
+}
+
+/* === VEHICLE COVERAGE SECTION === */
+.vehicle-coverage {
+    padding: clamp(3rem, 8vw, 4rem) 0;
+    position: relative;
+    overflow: hidden;
+    background: var(--dark-900);
+    text-align: center;
+}
+
+.coverage-stats {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: var(--space-2xl);
+    margin-bottom: var(--space-3xl);
+}
+
+.stat-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-xs);
+}
+
+.stat-number {
+    font-size: 2.5rem;
+    font-weight: 800;
+    color: var(--gold);
+    line-height: 1;
+}
+
+.stat-suffix {
+    font-size: 2.5rem;
+    font-weight: 800;
+    color: var(--gold);
+    line-height: 1;
+    opacity: 0.8;
+}
+
+/* .stat-label reuses the existing admin stats label rule above */
+
+.brands-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+    gap: var(--space-lg);
+    text-align: left;
+}
+
+.brand-card {
+    background: var(--dark-700);
+    border: 1px solid rgba(255, 215, 0, 0.4);
+    border-radius: var(--radius-xl);
+    padding: var(--space-2xl);
+    transition: all var(--transition-base);
+}
+
+.brand-card:hover {
+    transform: translateY(-4px);
+    border-color: var(--gold);
+}
+
+.brand-name {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--gold);
+    margin-bottom: var(--space-sm);
+}
+
+.brand-ecus {
+    color: var(--gray-400);
+    font-size: 0.85rem;
+    line-height: 1.6;
 }
