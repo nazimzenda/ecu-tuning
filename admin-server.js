@@ -31,8 +31,9 @@ adminApp.use(compression());
 // Cache static assets for 1 day in production
 const cacheMaxAge = process.env.NODE_ENV === 'production' ? 86400000 : 0;
 
-// Config endpoint
-adminApp.get('/config.js', (req, res) => {
+// Config endpoint. The array form is important: /admin/leads resolves a
+// relative config.js to /admin/config.js, while /leads resolves to /config.js.
+adminApp.get(['/config.js', '/admin/config.js'], (req, res) => {
   res.type('application/javascript');
   res.send(`window.API_BASE_URL = '${API_BASE_URL.replace(/'/g, "\\'")}';`);
 });

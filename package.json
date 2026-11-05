@@ -10,7 +10,10 @@
     "start:admin": "node admin-server.js",
     "dev": "nodemon server.js",
     "emulators": "firebase emulators:start --config firebase.emulators.json --only functions,firestore,auth",
-    "migrate:firestore": "node migration/migrate-sqlite-to-firestore.js"
+    "migrate:firestore": "node migration/migrate-sqlite-to-firestore.js",
+    "leads:seed": "node leads/seed.js",
+    "leads:research": "node leads/cli.js",
+    "leads:test": "node leads/test.js"
   },
   "keywords": [
     "ecu",

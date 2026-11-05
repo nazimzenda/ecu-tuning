@@ -89,6 +89,10 @@
                     <span class="nav-icon" aria-hidden="true">◎</span>
                     <span>Sources &amp; compliance</span>
                 </button>
+                <a class="nav-item" href="/admin" title="Order admin" aria-label="Order admin">
+                    <span class="nav-icon" aria-hidden="true">◧</span>
+                    <span>Order admin</span>
+                </a>
             </nav>
 
             <div class="sidebar-panel">
@@ -311,6 +315,17 @@
                             </select>
                         </label>
                         <label class="select-wrap">
+                            <span class="sr-only">Pipeline</span>
+                            <select id="filterPipeline">
+                                <option value="">All pipeline</option>
+                                <option value="new">New</option>
+                                <option value="contacted">Contacted</option>
+                                <option value="qualified">Qualified</option>
+                                <option value="not_fit">Not a fit</option>
+                                <option value="opted_out">Opted out</option>
+                            </select>
+                        </label>
+                        <label class="select-wrap">
                             <span class="sr-only">Compliance</span>
                             <select id="filterCompliance">
                                 <option value="">All compliance</option>
@@ -493,6 +508,8 @@
                         <div class="skeleton-line"></div>
                         <div class="skeleton-line short"></div>
                     </div>
+                    <div class="country-checks" id="countryChecksMore" hidden></div>
+                    <button type="button" class="text-btn country-more-toggle" id="toggleAllCountries">Show all countries</button>
                 </div>
                 <div class="form-row">
                     <label class="field">
