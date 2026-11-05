@@ -1,5 +1,7 @@
 // File upload form handling
-const API_BASE_URL = (window.API_BASE_URL || '').replace(/\/$/, '');
+// config.js is served at runtime by client-server.js; guard its absence in static previews
+window.API_BASE_URL = window.API_BASE_URL || '';
+const API_BASE_URL = window.API_BASE_URL.replace(/\/$/, '');
 
 // POST a FormData payload via XHR so upload progress can be reported.
 // Resolves with { ok, status, data } like fetch() would.
@@ -39,6 +41,59 @@ document.addEventListener('DOMContentLoaded', () => {
     const customServiceDescription = document.getElementById('customServiceDescription');
     const uploadProgress = document.getElementById('uploadProgress');
     const uploadProgressBar = document.getElementById('uploadProgressBar');
+
+    // Service cards preset the order form: smooth-scroll to #order, select
+    // the card's service, then focus the select.
+    const orderSection = document.getElementById('order');
+    document.querySelectorAll('.service-card .card-link[data-service]').forEach((link) => {
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (serviceSelect && link.getAttribute('data-service')) {
+                serviceSelect.value = link.getAttribute('data-service');
+                serviceSelect.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+            if (orderSection) {
+                orderSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                window.setTimeout(() => {
+                    if (serviceSelect) serviceSelect.focus({ preventScroll: true });
+                }, 500);
+            }
+        });
+    });
+
+    // Scrollspy: mark the nav link of the section on screen while scrolling.
+    const navHashLinks = Array.from(document.querySelectorAll('.nav-links a[href^="#"]'));
+    const navTargets = navHashLinks
+        .map((link) => document.querySelector(link.getAttribute('href')))
+        .filter((section) => section);
+    if (navHashLinks.length && navTargets.length && 'IntersectionObserver' in window) {
+        const setCurrent = (id) => {
+            navHashLinks.forEach((link) => {
+                if (link.getAttribute('href') === '#' + id) link.setAttribute('aria-current', 'page');
+                else link.removeAttribute('aria-current');
+            });
+        };
+        const spy = new IntersectionObserver((entries) => {
+            for (const entry of entries) {
+                if (entry.isIntersecting) setCurrent(entry.target.id);
+            }
+        }, { rootMargin: '-35% 0px -55% 0px', threshold: 0 });
+        navTargets.forEach((section) => spy.observe(section));
+    }
+
+    // Phone menu: open the full-screen menu, close it when a link is followed
+    const menuToggle = document.querySelector('.menu-toggle');
+    const mobileMenu = document.getElementById('mobile-menu');
+    if (menuToggle && mobileMenu) {
+        const setMenu = (open) => {
+            mobileMenu.classList.toggle('open', open);
+            menuToggle.setAttribute('aria-expanded', String(open));
+        };
+        menuToggle.addEventListener('click', () => setMenu(!mobileMenu.classList.contains('open')));
+        mobileMenu.querySelectorAll('a[href^="#"]').forEach((link) => {
+            link.addEventListener('click', () => setMenu(false));
+        });
+    }
 
     // Show/hide custom service description based on service selection
     serviceSelect.addEventListener('change', (e) => {
@@ -123,7 +178,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (result.ok) {
                 showMessage(
-                    `✅ Order submitted successfully! Order ID: ${result.data.orderId}. Your file is being processed.`,
+                    `Order submitted successfully. Order ID: ${result.data.orderId}. Your file is being processed.`,
                     'success'
                 );
                 form.reset();
@@ -135,14 +190,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     fileUploadText.textContent = 'Choose ECU File';
                 }
             } else {
-                showMessage(`❌ Error: ${result.data.error || 'Failed to submit order'}`, 'error');
+                showMessage(`Error: ${result.data.error || 'Failed to submit order'}`, 'error');
             }
         } catch (error) {
             console.error('Error:', error);
-            showMessage('❌ Network error. Please try again.', 'error');
+            showMessage('Network error. Please try again.', 'error');
         } finally {
             submitBtn.disabled = false;
-            btnText.textContent = 'Upload & Submit Order';
+            btnText.textContent = 'Send your ECU file';
             btnLoader.style.display = 'none';
             uploadProgress.classList.remove('show');
         }
@@ -157,46 +212,3 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// Animated stat counters for the vehicle coverage section
-(function () {
-    const counters = document.querySelectorAll('.stat-number[data-target]');
-    if (!counters.length) return;
-
-    const ANIMATION_DURATION = 1200;
-
-    function animateCounter(el) {
-        const target = parseInt(el.getAttribute('data-target'), 10);
-        if (isNaN(target)) return;
-
-        const startTime = performance.now();
-
-        function frame(now) {
-            const progress = Math.min((now - startTime) / ANIMATION_DURATION, 1);
-            const eased = 1 - Math.pow(1 - progress, 3); // ease-out cubic
-            el.textContent = Math.round(eased * target).toLocaleString();
-            if (progress < 1) {
-                requestAnimationFrame(frame);
-            }
-        }
-
-        requestAnimationFrame(frame);
-    }
-
-    if (document.querySelector('.stat-number')) {
-        if ('IntersectionObserver' in window) {
-            const observer = new IntersectionObserver((entries, obs) => {
-                entries.forEach((entry) => {
-                    if (entry.isIntersecting) {
-                        animateCounter(entry.target);
-                        obs.unobserve(entry.target);
-                    }
-                });
-            }, { threshold: 0.5 });
-
-            counters.forEach((counter) => observer.observe(counter));
-        } else {
-            // Fallback: run immediately if IntersectionObserver is unsupported
-            counters.forEach(animateCounter);
-        }
-    }
-})();

@@ -1,5 +1,7 @@
 // Admin panel functionality with authentication
-const API_BASE_URL = (window.API_BASE_URL || '').replace(/\/$/, '');
+// config.js is served at runtime by admin-server.js; guard its absence in static previews
+window.API_BASE_URL = window.API_BASE_URL || '';
+const API_BASE_URL = window.API_BASE_URL.replace(/\/$/, '');
 let orders = [];
 let adminSessionId = null;
 let filterStatus = null; // Track current filter
@@ -338,29 +340,29 @@ document.addEventListener('DOMContentLoaded', () => {
                     ${customDesc}
                 </div>
                 <div class="order-actions">
-                    <button class="btn btn-primary" onclick="viewOrderDetails(${orderId})" style="grid-column: 1 / -1;">
-                        🔍 View Full Details
+                    <button class="btn btn-primary" onclick="viewOrderDetails(${orderId})">
+                        View details
                     </button>
                     <button class="btn btn-secondary" onclick="downloadOriginal(${orderId})">
-                        📥 Download Original
+                        Download original file
                     </button>
                     ${order.status !== 'completed' ? `
                         <button class="btn btn-warning" onclick="updateStatus(${orderId}, 'processing')">
-                            ⚙️ Mark Processing
+                            Start processing
                         </button>
                     ` : ''}
                     ${order.status === 'processing' ? `
                         <button class="btn btn-success" onclick="showUploadModal(${orderId})">
-                            📤 Upload Modified
+                            Send modified file
                         </button>
                     ` : ''}
                     ${order.modified_file_path ? `
                         <button class="btn btn-primary" onclick="downloadModified(${orderId})">
-                            ✅ Download Modified
+                            Download modified file
                         </button>
                     ` : ''}
                     <button class="btn btn-danger" onclick="deleteOrder(${orderId})">
-                        🗑️ Delete
+                        Delete order
                     </button>
                 </div>
             </div>
@@ -410,20 +412,19 @@ document.addEventListener('DOMContentLoaded', () => {
         const order = orders.find(o => o.id === orderId);
         if (!order) return;
 
-        document.getElementById('modalTitle').textContent = `Upload Modified File - Order #${String(orderId).padStart(3, '0')}`;
+        document.getElementById('modalTitle').textContent = `Send modified file - Order #${String(orderId).padStart(3, '0')}`;
         document.getElementById('modalBody').innerHTML = `
-            <form id="uploadModifiedForm">
+            <form id="uploadModifiedForm" action="${API_BASE_URL}/api/orders/${orderId}/modified" method="post">
                 <div class="form-group">
-                    <label for="modifiedFile" style="color: #FFD700; font-weight: bold;">SELECT MODIFIED FILE</label>
+                    <label for="modifiedFile">Modified file</label>
                     <input type="file" id="modifiedFile" name="modifiedFile" 
-                           accept=".bin,.hex,.ori,.winols,.dam" required
-                           style="margin-top: 0.5rem;">
+                           accept=".bin,.hex,.ori,.winols,.dam" required>
                 </div>
                 <div class="upload-progress" id="uploadProgress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
                     <div class="upload-progress-bar" id="uploadProgressBar"></div>
                 </div>
-                <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem; font-size: 1.1rem; padding: 1rem;">
-                    UPLOAD MODIFIED FILE
+                <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 16px;">
+                    Send modified file
                 </button>
             </form>
         `;
@@ -450,7 +451,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const progress = document.getElementById('uploadProgress');
         const progressBar = document.getElementById('uploadProgressBar');
         const originalText = submitBtn.textContent;
-        submitBtn.textContent = 'UPLOADING...';
+        submitBtn.textContent = 'Uploading...';
         submitBtn.disabled = true;
         progress.classList.add('show');
         progressBar.style.width = '0%';
@@ -483,15 +484,15 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             if (result.ok) {
-                alert('✅ Modified file uploaded successfully!\n\nThe customer will receive an email notification.');
+                alert('Modified file uploaded successfully.\n\nThe customer will receive an email notification.');
                 modal.classList.remove('active');
                 loadOrders();
             } else {
-                alert(`❌ Error: ${result.data.error || 'Failed to upload file'}`);
+                alert(`Error: ${result.data.error || 'Failed to upload file'}`);
             }
         } catch (error) {
             console.error('Error uploading file:', error);
-            alert('❌ Error uploading file: ' + error.message);
+            alert('Error uploading file: ' + error.message);
         } finally {
             submitBtn.textContent = originalText;
             submitBtn.disabled = false;
@@ -550,25 +551,25 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         const statusColors = {
-            'pending': { bg: 'rgba(255, 170, 0, 0.15)', border: '#ffa500', text: '#ffaa00' },
-            'processing': { bg: 'rgba(0, 170, 255, 0.15)', border: '#00aaff', text: '#00aaff' },
-            'completed': { bg: 'rgba(0, 255, 136, 0.15)', border: '#00ff88', text: '#00ff88' }
+            'pending': { bg: 'rgba(240, 166, 60, 0.15)', border: 'rgba(240, 166, 60, 0.45)', text: 'var(--warning)' },
+            'processing': { bg: 'rgba(127, 180, 217, 0.15)', border: 'rgba(127, 180, 217, 0.45)', text: 'var(--info)' },
+            'completed': { bg: 'rgba(90, 201, 142, 0.15)', border: 'rgba(90, 201, 142, 0.45)', text: 'var(--success)' }
         };
         const statusColor = statusColors[order.status] || statusColors['pending'];
 
         document.getElementById('modalTitle').innerHTML = `
             <div style="display: flex; align-items: center; gap: 1.5rem; width: 100%; justify-content: space-between; flex-wrap: wrap;">
                 <div>
-                    <div style="font-size: 0.85rem; color: var(--gray-400); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.3rem;">Order ID</div>
-                    <h2 style="font-size: 2.2rem; margin: 0; background: var(--gradient-primary); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
+                    <div style="font-size: 13px; color: var(--gray-400); margin-bottom: 0.3rem;">Order ID</div>
+                    <span style="font-size: 2.2rem; margin: 0; color: var(--gold); font-family: var(--font-display); font-weight: 400; letter-spacing: -0.035em;">
                         #${String(Number(orderId)).padStart(3, '0')}
-                    </h2>
+                    </span>
                 </div>
                 <div style="text-align: right;">
-                    <div style="background: ${statusColor.bg}; border: 2px solid ${statusColor.border}; color: ${statusColor.text}; padding: 0.5rem 1.2rem; border-radius: 999px; font-weight: 700; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em;">
-                        ${esc(String(order.status).toUpperCase())}
+                    <div style="background: ${statusColor.bg}; border: 1px solid ${statusColor.border}; color: ${statusColor.text}; padding: 0.5rem 1.2rem; border-radius: 999px; font-weight: 500; font-size: 13px;">
+                        ${esc(String(order.status).charAt(0).toUpperCase() + String(order.status).slice(1))}
                     </div>
-                    <div style="color: var(--gray-400); font-size: 0.8rem; margin-top: 0.5rem;">
+                    <div style="color: var(--gray-400); font-size: 13px; margin-top: 0.5rem;">
                         ${esc(formattedDate)} • ${esc(formattedTime)}
                     </div>
                 </div>
@@ -579,142 +580,136 @@ document.addEventListener('DOMContentLoaded', () => {
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 1.2rem;">
                 <!-- Left Column -->
                 <div style="display: grid; gap: 1rem;">
-                    <!-- Vehicle Section - Compact -->
-                    <div style="background: rgba(0, 170, 255, 0.08); border: 2px solid rgba(0, 170, 255, 0.3); padding: 1rem; border-radius: var(--radius-md);">
-                        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.7rem;">
-                            <span style="font-size: 1.2rem;">🚗</span>
-                            <h3 style="color: #00aaff; font-size: 0.9rem; margin: 0; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700;">Vehicle</h3>
+                    <!-- Vehicle Section -->
+                    <div style="background: var(--surface-raised); border: 1px solid var(--border); padding: 1rem; border-radius: var(--radius-md);">
+                        <div style="margin-bottom: 0.7rem;">
+                            <h3 style="color: var(--info); font-size: 0.9rem; margin: 0; font-weight: 500;">Vehicle</h3>
                         </div>
-                        <div style="color: var(--gray-200); font-size: 0.95rem; font-weight: 600; line-height: 1.4; margin-bottom: 0.5rem;">
+                        <div style="color: var(--gray-200); font-size: 0.95rem; font-weight: 500; line-height: 1.4; margin-bottom: 0.5rem;">
                             ${esc(order.vehicle_info || 'N/A')}
                         </div>
-                        <div style="background: var(--dark-700); padding: 0.6rem; border-radius: var(--radius-sm); margin-bottom: 0.5rem;">
-                            <div style="color: var(--gray-500); font-size: 0.7rem; text-transform: uppercase; margin-bottom: 0.2rem;">ECU Reference</div>
-                            <div style="color: var(--gray-200); font-weight: 600;">${order.ecu_reference ? esc(order.ecu_reference) : 'Not provided'}</div>
+                        <div style="background: var(--bg); padding: 0.6rem; border-radius: var(--radius-sm); margin-bottom: 0.5rem;">
+                            <div style="color: var(--gray-500); font-size: 12px; margin-bottom: 0.2rem;">ECU reference</div>
+                            <div style="color: var(--gray-200); font-weight: 500;">${order.ecu_reference ? esc(order.ecu_reference) : 'Not provided'}</div>
                         </div>
-                        <div style="font-size: 0.8rem; color: var(--gray-500); padding-top: 0.5rem; border-top: 1px solid rgba(0, 170, 255, 0.2); margin-top: 0.5rem;">
-                            <div>📍 <strong style="color: var(--gray-400);">Info:</strong> ${order.vehicle_info ? 'Complete' : 'Incomplete'}</div>
+                        <div style="font-size: 13px; color: var(--gray-500); padding-top: 0.5rem; border-top: 1px solid var(--border); margin-top: 0.5rem;">
+                            <strong style="color: var(--gray-400); font-weight: 500;">Info:</strong> ${order.vehicle_info ? 'Complete' : 'Incomplete'}
                         </div>
                     </div>
 
-                    <!-- Service Section - Compact -->
-                    <div style="background: rgba(255, 170, 0, 0.08); border: 2px solid rgba(255, 170, 0, 0.3); padding: 1rem; border-radius: var(--radius-md);">
-                        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.7rem;">
-                            <span style="font-size: 1.2rem;">⚙️</span>
-                            <h3 style="color: #ffa500; font-size: 0.9rem; margin: 0; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700;">Service</h3>
+                    <!-- Service Section -->
+                    <div style="background: var(--surface-raised); border: 1px solid var(--border); padding: 1rem; border-radius: var(--radius-md);">
+                        <div style="margin-bottom: 0.7rem;">
+                            <h3 style="color: var(--warning); font-size: 0.9rem; margin: 0; font-weight: 500;">Service</h3>
                         </div>
-                        <div style="color: var(--gray-200); font-size: 0.95rem; font-weight: 600; margin-bottom: 0.5rem;">
+                        <div style="color: var(--gray-200); font-size: 0.95rem; font-weight: 500; margin-bottom: 0.5rem;">
                             ${esc(order.service)} — ${SERVICE_PRICES[order.service] || 'On request'}
                         </div>
-                        <div style="color: var(--gray-500); font-size: 0.75rem; margin-bottom: 0.5rem;">Prices in EUR</div>
+                        <div style="color: var(--gray-500); font-size: 12px; margin-bottom: 0.5rem;">Prices in EUR</div>
                         ${order.custom_service_description ? `
-                        <div style="background: rgba(255, 170, 0, 0.1); border-left: 3px solid #ffa500; padding: 0.6rem; border-radius: var(--radius-sm); margin-top: 0.5rem;">
-                            <div style="color: var(--gold); font-size: 0.75rem; text-transform: uppercase; font-weight: 700; margin-bottom: 0.3rem;">📝 Details:</div>
-                            <div style="color: var(--gray-300); font-size: 0.8rem; line-height: 1.4; max-height: 70px; overflow-y: auto;">
+                        <div style="background: var(--bg); border-left: 3px solid var(--gold); padding: 0.6rem; border-radius: var(--radius-sm); margin-top: 0.5rem;">
+                            <div style="color: var(--gold); font-size: 12px; font-weight: 500; margin-bottom: 0.3rem;">Details</div>
+                            <div style="color: var(--gray-300); font-size: 13px; line-height: 1.4; max-height: 70px; overflow-y: auto;">
                                 ${esc(order.custom_service_description)}
                             </div>
                         </div>
-                        ` : '<div style="color: var(--gray-500); font-size: 0.8rem; font-style: italic;">No custom details</div>'}
+                        ` : '<div style="color: var(--gray-500); font-size: 13px; font-style: italic;">No custom details</div>'}
                     </div>
 
                     <!-- Timeline Section -->
-                    <div style="background: rgba(156, 39, 176, 0.08); border: 2px solid rgba(156, 39, 176, 0.3); padding: 1rem; border-radius: var(--radius-md);">
-                        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.7rem;">
-                            <span style="font-size: 1.2rem;">⏱️</span>
-                            <h3 style="color: #9c27b0; font-size: 0.9rem; margin: 0; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700;">Timeline</h3>
+                    <div style="background: var(--surface-raised); border: 1px solid var(--border); padding: 1rem; border-radius: var(--radius-md);">
+                        <div style="margin-bottom: 0.7rem;">
+                            <h3 style="color: var(--gray-300); font-size: 0.9rem; margin: 0; font-weight: 500;">Timeline</h3>
                         </div>
-                        <div style="font-size: 0.8rem; color: var(--gray-300); line-height: 1.6;">
-                            <div>📅 <strong>Created:</strong> ${esc(formattedDate)}</div>
-                            <div>🕐 <strong>Time:</strong> ${esc(formattedTime)}</div>
-                            <div>⏳ <strong>Duration:</strong> ${Math.floor((Date.now() - createdDate) / 3600000)} hours</div>
+                        <div style="font-size: 13px; color: var(--gray-300); line-height: 1.6;">
+                            <div><strong style="font-weight: 500;">Created:</strong> ${esc(formattedDate)}</div>
+                            <div><strong style="font-weight: 500;">Time:</strong> ${esc(formattedTime)}</div>
+                            <div><strong style="font-weight: 500;">Duration:</strong> ${Math.floor((Date.now() - createdDate) / 3600000)} hours</div>
                         </div>
                     </div>
                 </div>
 
                 <!-- Right Column -->
                 <div style="display: grid; gap: 1rem;">
-                    <!-- Customer Section - Compact -->
-                    <div style="background: rgba(0, 255, 136, 0.08); border: 2px solid rgba(0, 255, 136, 0.3); padding: 1rem; border-radius: var(--radius-md);">
-                        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.7rem;">
-                            <span style="font-size: 1.2rem;">👤</span>
-                            <h3 style="color: #00ff88; font-size: 0.9rem; margin: 0; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700;">Customer</h3>
+                    <!-- Customer Section -->
+                    <div style="background: var(--surface-raised); border: 1px solid var(--border); padding: 1rem; border-radius: var(--radius-md);">
+                        <div style="margin-bottom: 0.7rem;">
+                            <h3 style="color: var(--success); font-size: 0.9rem; margin: 0; font-weight: 500;">Customer</h3>
                         </div>
-                        <div style="display: grid; gap: 0.5rem; font-size: 0.8rem;">
-                            <div style="background: var(--dark-700); padding: 0.6rem; border-radius: var(--radius-sm);">
-                                <div style="color: var(--gray-500); font-size: 0.7rem; text-transform: uppercase; margin-bottom: 0.2rem;">👥 Name</div>
-                                <div style="color: var(--gray-200); font-weight: 600;">${esc(order.customer_name || 'N/A')}</div>
+                        <div style="display: grid; gap: 0.5rem; font-size: 13px;">
+                            <div style="background: var(--bg); padding: 0.6rem; border-radius: var(--radius-sm);">
+                                <div style="color: var(--gray-500); font-size: 12px; margin-bottom: 0.2rem;">Name</div>
+                                <div style="color: var(--gray-200); font-weight: 500;">${esc(order.customer_name || 'N/A')}</div>
                             </div>
-                            <div style="background: var(--dark-700); padding: 0.6rem; border-radius: var(--radius-sm);">
-                                <div style="color: var(--gray-500); font-size: 0.7rem; text-transform: uppercase; margin-bottom: 0.2rem;">✉️ Email</div>
-                                <div style="color: var(--gray-200); font-weight: 600; word-break: break-all; font-size: 0.75rem;">${esc(order.customer_email || 'N/A')}</div>
+                            <div style="background: var(--bg); padding: 0.6rem; border-radius: var(--radius-sm);">
+                                <div style="color: var(--gray-500); font-size: 12px; margin-bottom: 0.2rem;">Email</div>
+                                <div style="color: var(--gray-200); font-weight: 500; word-break: break-all; font-size: 12px;">${esc(order.customer_email || 'N/A')}</div>
                             </div>
-                            <div style="background: var(--dark-700); padding: 0.6rem; border-radius: var(--radius-sm);">
-                                <div style="color: var(--gray-500); font-size: 0.7rem; text-transform: uppercase; margin-bottom: 0.2rem;">💬 WhatsApp</div>
-                                <div style="color: var(--gray-200); font-weight: 600;">${esc(order.customer_phone || 'N/A')}</div>
+                            <div style="background: var(--bg); padding: 0.6rem; border-radius: var(--radius-sm);">
+                                <div style="color: var(--gray-500); font-size: 12px; margin-bottom: 0.2rem;">WhatsApp</div>
+                                <div style="color: var(--gray-200); font-weight: 500;">${esc(order.customer_phone || 'N/A')}</div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Files Section - Compact -->
-                    <div style="background: rgba(255, 215, 0, 0.08); border: 2px solid rgba(255, 215, 0, 0.3); padding: 1rem; border-radius: var(--radius-md);">
-                        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.7rem;">
-                            <span style="font-size: 1.2rem;">📁</span>
-                            <h3 style="color: var(--gold); font-size: 0.9rem; margin: 0; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700;">Files</h3>
+                    <!-- Files Section -->
+                    <div style="background: var(--surface-raised); border: 1px solid var(--border); padding: 1rem; border-radius: var(--radius-md);">
+                        <div style="margin-bottom: 0.7rem;">
+                            <h3 style="color: var(--gold); font-size: 0.9rem; margin: 0; font-weight: 500;">Files</h3>
                         </div>
                         <div style="display: grid; gap: 0.5rem;">
-                            <div style="background: var(--dark-700); padding: 0.6rem; border-radius: var(--radius-sm);">
-                                <div style="color: var(--gray-500); font-size: 0.7rem; text-transform: uppercase; margin-bottom: 0.2rem;">📄 Original</div>
-                                <div style="color: var(--gray-300); font-size: 0.7rem; font-family: monospace; word-break: break-all;">
+                            <div style="background: var(--bg); padding: 0.6rem; border-radius: var(--radius-sm);">
+                                <div style="color: var(--gray-500); font-size: 12px; margin-bottom: 0.2rem;">Original</div>
+                                <div style="color: var(--gray-300); font-size: 12px; font-family: monospace; word-break: break-all;">
                                     ${esc(order.original_file_name)}
                                 </div>
                             </div>
                             ${order.modified_file_name ? `
-                            <div style="background: rgba(0, 255, 136, 0.1); border: 1px solid rgba(0, 255, 136, 0.3); padding: 0.6rem; border-radius: var(--radius-sm);">
-                                <div style="color: #00ff88; font-size: 0.7rem; text-transform: uppercase; font-weight: 700; margin-bottom: 0.2rem;">✅ Modified</div>
-                                <div style="color: #00ff88; font-size: 0.7rem; font-family: monospace; word-break: break-all;">
+                            <div style="background: rgba(90, 201, 142, 0.1); border: 1px solid rgba(90, 201, 142, 0.35); padding: 0.6rem; border-radius: var(--radius-sm);">
+                                <div style="color: var(--success); font-size: 12px; font-weight: 500; margin-bottom: 0.2rem;">Modified</div>
+                                <div style="color: var(--success); font-size: 12px; font-family: monospace; word-break: break-all;">
                                     ${esc(order.modified_file_name)}
                                 </div>
                             </div>
                             ` : `
-                            <div style="background: rgba(255, 215, 0, 0.1); border: 1px dashed rgba(255, 215, 0, 0.3); padding: 0.6rem; border-radius: var(--radius-sm); text-align: center;">
-                                <div style="color: var(--gray-500); font-size: 0.8rem; font-style: italic;">⏳ Awaiting modified file</div>
+                            <div style="background: var(--bg); border: 1px dashed var(--border-strong); padding: 0.6rem; border-radius: var(--radius-sm); text-align: center;">
+                                <div style="color: var(--gray-500); font-size: 13px; font-style: italic;">Awaiting modified file</div>
                             </div>
                             `}
                         </div>
                     </div>
 
-                    <!-- Stats Section -->
-                    <div style="background: rgba(76, 175, 80, 0.08); border: 2px solid rgba(76, 175, 80, 0.3); padding: 1rem; border-radius: var(--radius-md);">
-                        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.7rem;">
-                            <span style="font-size: 1.2rem;">📊</span>
-                            <h3 style="color: #4caf50; font-size: 0.9rem; margin: 0; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700;">Status</h3>
+                    <!-- Status Section -->
+                    <div style="background: var(--surface-raised); border: 1px solid var(--border); padding: 1rem; border-radius: var(--radius-md);">
+                        <div style="margin-bottom: 0.7rem;">
+                            <h3 style="color: var(--gray-300); font-size: 0.9rem; margin: 0; font-weight: 500;">Status</h3>
                         </div>
-                        <div style="font-size: 0.8rem; color: var(--gray-300); line-height: 1.6;">
-                            <div>🔄 <strong>Current:</strong> ${esc(String(order.status).charAt(0).toUpperCase() + String(order.status).slice(1))}</div>
-                            <div>📦 <strong>Files:</strong> ${order.modified_file_name ? '✅ Complete' : '⏳ Pending'}</div>
+                        <div style="font-size: 13px; color: var(--gray-300); line-height: 1.6;">
+                            <div><strong style="font-weight: 500;">Current:</strong> ${esc(String(order.status).charAt(0).toUpperCase() + String(order.status).slice(1))}</div>
+                            <div><strong style="font-weight: 500;">Files:</strong> ${order.modified_file_name ? 'Complete' : 'Pending'}</div>
                         </div>
                     </div>
                 </div>
             </div>
 
             <!-- Action Buttons -->
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 0.8rem; margin-top: 1.5rem; padding-top: 1.5rem; border-top: 2px solid rgba(255, 215, 0, 0.1);">
-                <button class="btn btn-primary" onclick="downloadOriginal(${Number(orderId)}); document.getElementById('orderModal').classList.remove('active');" style="font-size: 0.85rem; padding: 0.6rem 0.8rem;">
-                    📥 Download
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 0.8rem; margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border);">
+                <button class="btn btn-primary" onclick="downloadOriginal(${Number(orderId)}); document.getElementById('orderModal').classList.remove('active');">
+                    Download original file
                 </button>
                 ${order.status === 'pending' ? `
-                <button class="btn btn-secondary" onclick="updateStatus(${Number(orderId)}, 'processing'); document.getElementById('orderModal').classList.remove('active');" style="font-size: 0.85rem; padding: 0.6rem 0.8rem;">
-                    ⚙️ Process
+                <button class="btn btn-secondary" onclick="updateStatus(${Number(orderId)}, 'processing'); document.getElementById('orderModal').classList.remove('active');">
+                    Start processing
                 </button>
                 ` : ''}
                 ${order.status === 'processing' ? `
-                <button class="btn btn-primary" onclick="document.getElementById('orderModal').classList.remove('active'); showUploadModal(${Number(orderId)});" style="font-size: 0.85rem; padding: 0.6rem 0.8rem;">
-                    📤 Upload
+                <button class="btn btn-primary" onclick="document.getElementById('orderModal').classList.remove('active'); showUploadModal(${Number(orderId)});">
+                    Send modified file
                 </button>
                 ` : ''}
                 ${order.modified_file_path ? `
-                <button class="btn btn-success" onclick="downloadModified(${Number(orderId)}); document.getElementById('orderModal').classList.remove('active');" style="font-size: 0.85rem; padding: 0.6rem 0.8rem;">
-                    ✅ Download
+                <button class="btn btn-success" onclick="downloadModified(${Number(orderId)}); document.getElementById('orderModal').classList.remove('active');">
+                    Download modified file
                 </button>
                 ` : ''}
             </div>

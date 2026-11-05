@@ -1,63 +1,80 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-type="service" data-radius="soft" data-buttons="solid" data-motion>
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Panel - AZ Performance</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Admin panel - AZ Performance</title>
+    <meta name="description" content="Order management console for AZ Performance.">
+    <meta name="page-type" content="service">
+    <meta name="site-kind" content="other">
+    <!-- Fonts: Schibsted Grotesk 400-700 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400..700&display=swap" rel="stylesheet">
     <link rel="preload" href="styles.css" as="style">
     <link rel="stylesheet" href="styles.css">
-    <link rel="preconnect" href="/" crossorigin>
 </head>
 <body>
-    <a class="skip-link" href="#main-content">Skip to content</a>
-    <nav class="navbar">
-        <div class="container">
-            <div class="nav-brand">
-                <span class="logo-icon">⚙️</span>
-                <span class="logo-text">AZ Performance</span>
-            </div>
-            <div class="nav-links">
+    <header class="nav">
+        <a class="skip-link" href="#main-content">Skip to admin</a>
+        <div class="wrap">
+            <a class="nav-brand" href="/" aria-label="AZ Performance, home">
+                <span class="mark" aria-hidden="true">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></svg>
+                </span>
+                AZ Performance
+            </a>
+            <nav class="nav-links" aria-label="Main">
                 <a href="/">Home</a>
-                <a href="/admin" class="active">Admin</a>
+                <a href="/admin" aria-current="page">Admin</a>
                 <a href="/admin/leads">Lead Research</a>
-            </div>
+            </nav>
+            <button class="menu-toggle" aria-expanded="false" aria-controls="mobile-menu" aria-label="Menu">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h16"/></svg>
+            </button>
         </div>
-    </nav>
+        <nav id="mobile-menu" class="nav-menu" aria-label="Mobile">
+            <a href="/">Home</a>
+            <a href="/admin" aria-current="page">Admin</a>
+            <a href="/admin/leads">Lead Research</a>
+        </nav>
+    </header>
 
     <main class="main-content" id="main-content">
-        <!-- Login Screen -->
-        <section id="loginSection" class="admin-section">
-            <div class="container">
-                <div class="login-card">
-                    <h1 class="admin-title">🔐 Admin Login</h1>
-                    <p style="color: var(--text-dark); text-align: center; margin-bottom: 2rem;">Enter password to access admin panel</p>
-                    <form id="loginForm">
+        <!-- Login screen: one hero screen on the tuning photograph -->
+        <section id="loginSection" class="admin-section" style="--h: 1">
+            <div class="wrap">
+                <div class="hero-text">
+                    <p class="hero-note">2,500+ ECUs tuned · orders from 40 €</p>
+                    <h1 class="admin-title">Admin for the ECU tuning service</h1>
+                    <p class="login-note">Enter the password to open the admin panel.</p>
+                    <form id="loginForm" class="form" action="/api/admin/login" method="post">
                         <div class="form-group">
                             <label for="adminPassword">Password</label>
-                            <input type="password" id="adminPassword" name="password" placeholder="Enter admin password" required autofocus>
+                            <input type="password" id="adminPassword" name="password" placeholder="Admin password" required autofocus>
                         </div>
-                        <button type="submit" class="btn btn-primary" style="width: 100%;">Login</button>
-                        <div id="loginMessage" class="message" style="margin-top: 1rem;"></div>
+                        <button type="submit" class="btn btn-primary">Log in</button>
+                        <div id="loginMessage" class="message" style="margin-top: 16px;"></div>
                     </form>
                 </div>
             </div>
         </section>
 
-        <!-- Admin Panel (hidden until logged in) -->
+        <!-- Admin panel (hidden until logged in) -->
         <section id="adminPanelSection" class="admin-section" style="display: none;">
-            <div class="container">
+            <div class="wrap">
                 <div class="admin-header">
-                    <h1 class="admin-title">Admin Panel</h1>
-                    <div style="display: flex; gap: 1rem; align-items: center;">
-                        <button class="btn btn-secondary" id="refreshBtn">🔄 Refresh Orders</button>
-                        <button class="btn btn-danger" id="logoutBtn">🚪 Logout</button>
+                    <p class="admin-title">Admin panel</p>
+                    <div class="admin-actions">
+                        <button class="btn btn-secondary" id="refreshBtn">Refresh orders</button>
+                        <button class="btn btn-danger" id="logoutBtn">Log out</button>
                     </div>
                 </div>
 
                 <div class="stats-grid">
                     <div class="stat-card" tabindex="0" role="button">
                         <div class="stat-value" id="totalOrders">0</div>
-                        <div class="stat-label">Total Orders</div>
+                        <div class="stat-label">Total orders</div>
                     </div>
                     <div class="stat-card" tabindex="0" role="button">
                         <div class="stat-value" id="pendingOrders">0</div>
@@ -74,11 +91,10 @@
                 </div>
 
                 <div class="orders-container">
-                    <div style="display: flex; gap: 1rem; align-items: center; margin-bottom: 2rem; flex-wrap: wrap;">
-                        <h2 class="section-title" style="margin: 0;">Orders</h2>
+                    <div class="orders-toolbar">
+                        <h2>Orders</h2>
                         <label for="searchInput" class="visually-hidden">Search orders</label>
-                        <input type="text" id="searchInput" placeholder="🔍 Search by name, email, vehicle..." 
-                               style="flex: 1; min-width: 200px; min-height: 44px; padding: 0.75rem 1rem; background: var(--bg); border: 1px solid var(--border-color); border-radius: var(--radius-md); color: var(--gray-200); font-size: 0.9rem;"
+                        <input type="text" id="searchInput" placeholder="Search by name, email, vehicle..."
                                oninput="searchOrders(this.value)">
                     </div>
                     <div id="ordersList" class="orders-list">
@@ -89,23 +105,54 @@
         </section>
     </main>
 
-    <!-- Order Modal -->
+    <!-- Order modal -->
     <div id="orderModal" class="modal">
         <div class="modal-content">
             <button class="modal-close" aria-label="Close modal">&times;</button>
-            <h2 id="modalTitle">Order Details</h2>
+            <h2 id="modalTitle">Order details</h2>
             <div id="modalBody"></div>
         </div>
     </div>
 
-    <footer class="footer">
-        <div class="container">
-            <p>&copy; 2024 AZ Performance. Admin Panel.</p>
+    <footer class="footer closing" style="--h: 1">
+        <div class="wrap">
+            <div class="footer-main">
+                <span class="footer-brand">
+                    <span class="mark" aria-hidden="true">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></svg>
+                    </span>
+                    AZ Performance
+                </span>
+                <p class="footer-contact">Admin panel</p>
+            </div>
+            <div class="footer-legal">
+                <span>© 2026 AZ Performance</span>
+            </div>
         </div>
     </footer>
 
+    <!-- config.js is served at runtime by admin-server.js -->
     <script src="config.js"></script>
     <script src="admin.js" defer></script>
+    <script>
+        // Mobile menu toggle (mirrors app.js's menu behaviour)
+        (function () {
+            var t = document.querySelector('.menu-toggle');
+            var m = document.getElementById('mobile-menu');
+            if (t && m) {
+                t.addEventListener('click', function () {
+                    var open = !m.classList.contains('open');
+                    m.classList.toggle('open', open);
+                    t.setAttribute('aria-expanded', String(open));
+                });
+                m.querySelectorAll('a[href]').forEach(function (l) {
+                    l.addEventListener('click', function () {
+                        m.classList.remove('open');
+                        t.setAttribute('aria-expanded', 'false');
+                    });
+                });
+            }
+        })();
+    </script>
 </body>
 </html>
-

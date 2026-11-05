@@ -1,71 +1,385 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-type="service" data-radius="soft" data-buttons="solid" data-motion>
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AZ Performance - Engine Reprogramming & Automotive Optimization</title>
-    <!-- Preload critical CSS -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>AZ Performance: ECU tuning service</title>
+    <meta name="description" content="ECU remapping and diagnostics by AZ Performance. Send your ECU file, we remap it and return it. 12 services from 40 €.">
+    <meta name="page-type" content="service">
+    <meta name="site-kind" content="other">
+    <!-- Fonts: Schibsted Grotesk 400-700 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400..700&display=swap" rel="stylesheet">
     <link rel="preload" href="styles.css" as="style">
     <link rel="stylesheet" href="styles.css">
-    <!-- DNS prefetch for external resources -->
-    <link rel="dns-prefetch" href="//fonts.googleapis.com">
-    <!-- Preconnect to API -->
-    <link rel="preconnect" href="/" crossorigin>
 </head>
 <body>
-    <a class="skip-link" href="#main-content">Skip to content</a>
-    <nav class="navbar">
-        <div class="container">
-            <div class="nav-brand">
-                <span class="logo-icon">⚙️</span>
-                <span class="logo-text">AZ Performance</span>
-            </div>
-            <div class="nav-links">
-                <a href="/">Home</a>
-            </div>
+    <header class="nav">
+        <a class="skip-link" href="#services">Skip to services</a>
+        <div class="wrap">
+            <a class="nav-brand" href="#top" aria-label="AZ Performance, home">
+                <span class="mark" aria-hidden="true">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></svg>
+                </span>
+                AZ Performance
+            </a>
+            <nav class="nav-links" aria-label="Main">
+                <a href="#services">Services</a>
+                <a href="#vehicles">Vehicles</a>
+                <a href="#process">Steps</a>
+                <a class="btn btn-primary" href="#order">Send your ECU file</a>
+            </nav>
+            <button class="menu-toggle" aria-expanded="false" aria-controls="mobile-menu" aria-label="Menu">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h16"/></svg>
+            </button>
         </div>
-    </nav>
+        <nav id="mobile-menu" class="nav-menu" aria-label="Mobile">
+            <a href="#services">Services</a>
+            <a href="#vehicles">Vehicles</a>
+            <a href="#process">Steps</a>
+            <a class="btn btn-primary" href="#order">Send your ECU file</a>
+        </nav>
+    </header>
 
-    <main id="main-content" class="main-content">
-        <section class="hero">
-            <div class="container" style="position: relative; z-index: 2;">
-                <h1 class="hero-title">Engine Reprogramming & Automotive Optimization</h1>
-                <p class="hero-subtitle">All Vehicles • Guaranteed Results</p>
+    <main id="main-content" class="page">
+        <!-- Screen 1: the hero, alone -->
+        <section class="hero" id="top" style="--h: 1">
+            <div class="wrap">
+                <div class="hero-text">
+                    <p class="hero-note">12 services from 40 €</p>
+                    <h1 class="hero-title">ECU tuning for every car</h1>
+                    <p class="hero-lead">Send your original ECU file, we remap it and send it back.</p>
+                    <div class="btn-row">
+                        <a class="btn btn-primary" href="#order">Send your ECU file</a>
+                        <a class="btn btn-secondary" href="#services">See services and prices</a>
+                    </div>
+                </div>
             </div>
         </section>
 
-        <section class="upload-section">
-            <div class="container">
+        <!-- Services and prices -->
+        <section id="services" style="--h: 2; --hm: 2">
+            <div class="wrap">
+                <div class="section-head">
+                    <h2>Services and prices</h2>
+                    <p class="section-subtitle">Each file is read, modified and checked by a tuner. Pick a service below, then send your file from the form at the end of the page.</p>
+                </div>
+                <div class="services-grid">
+                    <article class="service-card">
+                        <span class="service-icon" aria-hidden="true">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/></svg>
+                        </span>
+                        <h3 class="service-title">Stage 1 - 200€</h3>
+                        <p class="service-description">Performance upgrade with optimized fuel injection and boost</p>
+                        <ul class="service-features">
+                            <li>+15-30% horsepower</li>
+                            <li>+20-40% torque</li>
+                            <li>Optimized fuel maps</li>
+                        </ul>
+                        <a class="card-link" href="#order" data-service="Stage 1">Order a service</a>
+                    </article>
+
+                    <article class="service-card">
+                        <span class="service-icon" aria-hidden="true">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg>
+                        </span>
+                        <h3 class="service-title">Conversion E85 - 250€</h3>
+                        <p class="service-description">Convert your vehicle to run on E85 bioethanol fuel</p>
+                        <ul class="service-features">
+                            <li>Lower fuel costs</li>
+                            <li>Optimized ethanol maps</li>
+                            <li>Eco-friendly performance</li>
+                        </ul>
+                        <a class="card-link" href="#order" data-service="E85">Order a service</a>
+                    </article>
+
+                    <article class="service-card">
+                        <span class="service-icon" aria-hidden="true">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>
+                        </span>
+                        <h3 class="service-title">Solution FAP - 100€</h3>
+                        <p class="service-description">Reliable solution for particulate filter issues</p>
+                        <ul class="service-features">
+                            <li>Eliminates regeneration issues</li>
+                            <li>Improved engine reliability</li>
+                            <li>Clean diagnostic scan</li>
+                        </ul>
+                        <a class="card-link" href="#order" data-service="FAP">Order a service</a>
+                    </article>
+
+                    <article class="service-card">
+                        <span class="service-icon" aria-hidden="true">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 19H4.815a1.83 1.83 0 0 1-1.57-.881 1.785 1.785 0 0 1-.004-1.784L7.196 9.5"/><path d="M11 19h8.203a1.83 1.83 0 0 0 1.556-.89 1.784 1.784 0 0 0 0-1.775l-1.226-2.12"/><path d="m14 16-3 3 3 3"/><path d="M8.293 13.596 7.196 9.5 3.1 10.598"/><path d="m9.344 5.811 1.093-1.892A1.83 1.83 0 0 1 11.985 3a1.784 1.784 0 0 1 1.546.888l3.943 6.843"/><path d="m13.378 9.633 4.096 1.098 1.097-4.096"/></svg>
+                        </span>
+                        <h3 class="service-title">Solution EGR - 70€</h3>
+                        <p class="service-description">Reliable solution for EGR valve issues</p>
+                        <ul class="service-features">
+                            <li>Reduced carbon buildup</li>
+                            <li>Improved reliability</li>
+                            <li>Clean diagnostic scan</li>
+                        </ul>
+                        <a class="card-link" href="#order" data-service="EGR">Order a service</a>
+                    </article>
+
+                    <article class="service-card">
+                        <span class="service-icon" aria-hidden="true">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+                        </span>
+                        <h3 class="service-title">FAP + EGR - 120€</h3>
+                        <p class="service-description">Reliable solution for particulate filter and EGR issues</p>
+                        <ul class="service-features">
+                            <li>Eliminates regeneration issues</li>
+                            <li>Reduced carbon buildup</li>
+                            <li>Improved engine reliability</li>
+                        </ul>
+                        <a class="card-link" href="#order" data-service="FAPEGR">Order a service</a>
+                    </article>
+
+                    <article class="service-card">
+                        <span class="service-icon" aria-hidden="true">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/></svg>
+                        </span>
+                        <h3 class="service-title">Solution AD Blue - 100€</h3>
+                        <p class="service-description">Reliable solution for AdBlue system faults</p>
+                        <ul class="service-features">
+                            <li>No more AdBlue warnings</li>
+                            <li>Improved reliability</li>
+                            <li>Clean diagnostic scan</li>
+                        </ul>
+                        <a class="card-link" href="#order" data-service="AdBlue">Order a service</a>
+                    </article>
+
+                    <article class="service-card">
+                        <span class="service-icon" aria-hidden="true">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M15 18H9"/><path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14"/><circle cx="17" cy="18" r="2"/><circle cx="7" cy="18" r="2"/></svg>
+                        </span>
+                        <h3 class="service-title">UTILITAIRE (FAP+EGR+AdBlue) - 150€</h3>
+                        <p class="service-description">Complete anti-pollution solution for utility vehicles</p>
+                        <ul class="service-features">
+                            <li>FAP + EGR + AdBlue</li>
+                            <li>Improved reliability</li>
+                            <li>Reduced downtime</li>
+                        </ul>
+                        <a class="card-link" href="#order" data-service="Utilitaire">Order a service</a>
+                    </article>
+
+                    <article class="service-card">
+                        <span class="service-icon" aria-hidden="true">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15.5 7.5 2.3 2.3a1 1 0 0 0 1.4 0l2.1-2.1a1 1 0 0 0 0-1.4L19 4"/><path d="m21 2-9.6 9.6"/><circle cx="7.5" cy="15.5" r="5.5"/></svg>
+                        </span>
+                        <h3 class="service-title">IMMO OFF - 100€</h3>
+                        <p class="service-description">Immobilizer solution for starting issues</p>
+                        <ul class="service-features">
+                            <li>Resolve immobilizer faults</li>
+                            <li>ECU replacement support</li>
+                            <li>Tested start-up</li>
+                        </ul>
+                        <a class="card-link" href="#order" data-service="ImmoOff">Order a service</a>
+                    </article>
+
+                    <article class="service-card">
+                        <span class="service-icon" aria-hidden="true">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                        </span>
+                        <h3 class="service-title">RECHERCHE DE PANNE - Dès 50€</h3>
+                        <p class="service-description">In-depth fault finding for complex breakdowns</p>
+                        <ul class="service-features">
+                            <li>Full fault analysis</li>
+                            <li>Expert diagnosis</li>
+                            <li>Repair guidance</li>
+                        </ul>
+                        <a class="card-link" href="#order" data-service="Recherche">Order a service</a>
+                    </article>
+
+                    <article class="service-card">
+                        <span class="service-icon" aria-hidden="true">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></svg>
+                        </span>
+                        <h3 class="service-title">DIAGNOSTIC - 40€</h3>
+                        <p class="service-description">Complete electronic diagnostic of your vehicle</p>
+                        <ul class="service-features">
+                            <li>Full system scan</li>
+                            <li>Detailed report</li>
+                            <li>Expert advice</li>
+                        </ul>
+                        <a class="card-link" href="#order" data-service="Diagnostic">Order a service</a>
+                    </article>
+
+                    <article class="service-card">
+                        <span class="service-icon" aria-hidden="true">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>
+                        </span>
+                        <h3 class="service-title">DTC OFF - 40€</h3>
+                        <p class="service-description">Eliminate specific fault codes and prevent check engine lights</p>
+                        <ul class="service-features">
+                            <li>Remove error codes</li>
+                            <li>Clear check engine light</li>
+                            <li>Clean diagnostic scan</li>
+                        </ul>
+                        <a class="card-link" href="#order" data-service="DTCOff">Order a service</a>
+                    </article>
+
+                    <article class="service-card">
+                        <span class="service-icon" aria-hidden="true">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+                        </span>
+                        <h3 class="service-title">AUTRES PRESTATIONS - SUR DEMANDE</h3>
+                        <p class="service-description">Autres prestations sur demande - contact us for a quote</p>
+                        <ul class="service-features">
+                            <li>Tailored modifications</li>
+                            <li>Expert advice</li>
+                            <li>On request pricing</li>
+                        </ul>
+                        <a class="card-link" href="#order" data-service="Autres">Order a service</a>
+                    </article>
+                </div>
+            </div>
+        </section>
+
+        <!-- Vehicles and ECU references -->
+        <section id="vehicles" style="--h: 2; --hm: 2">
+            <div class="wrap">
+                <div class="section-head">
+                    <h2>Vehicles and ECU references</h2>
+                    <p class="section-subtitle">Daily drivers and performance builds. Our engineers map and tune ECUs across the major brands.</p>
+                </div>
+                <div class="coverage-stats">
+                    <div class="stat-item">
+                        <span class="stat-number">2,500</span><span class="stat-suffix">+</span>
+                        <span class="stat-label">ECUs tuned</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number">35</span><span class="stat-suffix">+</span>
+                        <span class="stat-label">Brands supported</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number">300</span><span class="stat-suffix">+</span>
+                        <span class="stat-label">Models mapped</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number">48</span><span class="stat-suffix">h</span>
+                        <span class="stat-label">Average turnaround</span>
+                    </div>
+                </div>
+                <div class="vehicle-photo" role="img" aria-label="Tuned car photographed on the road"></div>
+                <div class="brand-list">
+                    <div class="brand-item"><span class="brand-name">BMW</span><span class="brand-ecus">EDC17C64 · MSD80 · MEVD17.2</span></div>
+                    <div class="brand-item"><span class="brand-name">Audi</span><span class="brand-ecus">EDC17C46 · MED17.1 · Simos 18</span></div>
+                    <div class="brand-item"><span class="brand-name">Volkswagen</span><span class="brand-ecus">EDC17C64 · EDC17CP45 · MED17.5</span></div>
+                    <div class="brand-item"><span class="brand-name">Mercedes-Benz</span><span class="brand-ecus">CRD3 · MED17.7 · EDC17C50</span></div>
+                    <div class="brand-item"><span class="brand-name">Opel</span><span class="brand-ecus">MJD 8F3 · EDC17C59 · DCM3.7</span></div>
+                    <div class="brand-item"><span class="brand-name">Ford</span><span class="brand-ecus">SID208 · SID310 · SIM2K</span></div>
+                    <div class="brand-item"><span class="brand-name">Renault</span><span class="brand-ecus">EDC17C42 · CRD3 · MED17</span></div>
+                    <div class="brand-item"><span class="brand-name">Peugeot/Citroën</span><span class="brand-ecus">EDC17C60 · MEV17.4 · IAW</span></div>
+                    <div class="brand-item"><span class="brand-name">Fiat</span><span class="brand-ecus">MJD 8F3 · EDC16C39 · IAW 7GF</span></div>
+                    <div class="brand-item"><span class="brand-name">Toyota</span><span class="brand-ecus">Denso SH7058 · DCM3.7</span></div>
+                    <div class="brand-item"><span class="brand-name">Škoda</span><span class="brand-ecus">EDC17C46 · MED17.5 · Simos</span></div>
+                    <div class="brand-item"><span class="brand-name">Seat</span><span class="brand-ecus">EDC17C46 · MED17.1 · Simos</span></div>
+                </div>
+                <div class="section-cta">
+                    <p class="cta-line">Send your file, we send the tune back within 48 hours.</p>
+                    <a class="btn btn-primary" href="#order">Send your ECU file</a>
+                </div>
+            </div>
+        </section>
+
+        <!-- Process -->
+        <section id="process" style="--h: 1; --hm: 2">
+            <div class="wrap">
+                <div class="section-head">
+                    <h2>Three steps</h2>
+                </div>
+                <div class="process-steps">
+                    <div class="step">
+                        <div class="step-visual">
+                            <svg viewBox="0 0 320 200" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <path d="M116 100h14M190 100h14"/>
+                                <circle cx="100" cy="100" r="30" fill="currentColor" fill-opacity=".12"/>
+                                <circle cx="160" cy="100" r="30"/>
+                                <circle cx="220" cy="100" r="30"/>
+                                <path d="M100 122V88"/>
+                                <path d="M88 100l12-12 12 12"/>
+                                <path d="M74 134h52" opacity=".5"/>
+                                <path d="M100 130v12M160 130v12M220 130v12" opacity=".5"/>
+                            </svg>
+                        </div>
+                        <div class="step-number">1</div>
+                        <h3>Send your file</h3>
+                        <p>Upload your original ECU file (.bin, .hex, .ori, .winols, .dam).</p>
+                    </div>
+                    <div class="step">
+                        <div class="step-visual">
+                            <svg viewBox="0 0 320 200" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <path d="M116 100h14M190 100h14"/>
+                                <circle cx="100" cy="100" r="30"/>
+                                <circle cx="160" cy="100" r="30" fill="currentColor" fill-opacity=".12"/>
+                                <circle cx="220" cy="100" r="30"/>
+                                <path d="M146 100c4-12 7-12 11 0s7 12 11 0"/>
+                                <path d="M100 130v12M160 130v12M220 130v12" opacity=".5"/>
+                            </svg>
+                        </div>
+                        <div class="step-number">2</div>
+                        <h3>We remap your ECU file</h3>
+                        <p>Our tuners modify your file with the chosen service.</p>
+                    </div>
+                    <div class="step">
+                        <div class="step-visual">
+                            <svg viewBox="0 0 320 200" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <path d="M116 100h14M190 100h14"/>
+                                <circle cx="100" cy="100" r="30"/>
+                                <circle cx="160" cy="100" r="30"/>
+                                <circle cx="220" cy="100" r="30" fill="currentColor" fill-opacity=".12"/>
+                                <path d="M220 78v22"/>
+                                <path d="M208 88l12 12 12-12"/>
+                                <path d="M100 130v12M160 130v12M220 130v12" opacity=".5"/>
+                            </svg>
+                        </div>
+                        <div class="step-number">3</div>
+                        <h3>You flash the ECU tune</h3>
+                        <p>Receive the modified file back and flash it to your vehicle.</p>
+                    </div>
+                </div>
+                <div class="section-cta">
+                    <a class="card-link" href="#order">Start an order</a>
+                </div>
+            </div>
+        </section>
+
+        <!-- Order form -->
+        <section id="order" style="--h: 2; --hm: 2">
+            <div class="wrap">
+                <div class="section-head">
+                    <h2>Send your ECU file</h2>
+                    <p class="section-subtitle">Fill in the order below. You get a confirmation by email and WhatsApp, and the modified file back within 48 hours.</p>
+                </div>
                 <div class="upload-card">
-                    <h2 class="card-title">Upload Your ECU File</h2>
-                    <form id="uploadForm" class="upload-form">
+                    <form id="uploadForm" class="form" action="/api/orders" method="post">
                         <div class="form-group">
-                            <label for="customerName">Your Name</label>
-                            <input type="text" id="customerName" name="customerName" placeholder="John Doe" required>
+                            <label for="customerName">Your name</label>
+                            <input type="text" id="customerName" name="customerName" placeholder="Your full name" required>
                         </div>
 
                         <div class="form-group">
-                            <label for="customerEmail">Email Address</label>
-                            <input type="email" id="customerEmail" name="customerEmail" placeholder="john@example.com" required>
+                            <label for="customerEmail">Email address</label>
+                            <input type="email" id="customerEmail" name="customerEmail" placeholder="Your email address" required>
                         </div>
 
                         <div class="form-group">
-                            <label for="customerPhone">WhatsApp Number (Optional)</label>
-                            <input type="tel" id="customerPhone" name="customerPhone" placeholder="+1234567890 (with country code)" pattern="^\+[1-9]\d{1,14}$">
-                            <small style="color: var(--text-dark); font-size: 0.85rem; margin-top: 0.25rem; display: block;">
-                                Include country code e.g. +213663334559 – we notify via WhatsApp.
-                            </small>
+                            <label for="customerPhone">WhatsApp number (optional)</label>
+                            <input type="tel" id="customerPhone" name="customerPhone" placeholder="+213 6 63 33 45 59" pattern="^\+[1-9]\d{1,14}$">
+                            <small class="field-note">Include the country code, e.g. +213663334559 — we notify via WhatsApp.</small>
                         </div>
 
                         <div class="form-group">
-                            <label for="vehicleInfo">Vehicle Information</label>
-                            <input type="text" id="vehicleInfo" name="vehicleInfo" placeholder="e.g., 2015 VW Golf TDI" required>
+                            <label for="vehicleInfo">Vehicle information</label>
+                            <input type="text" id="vehicleInfo" name="vehicleInfo" placeholder="e.g. 2015 VW Golf TDI" required>
                         </div>
 
                         <div class="form-group">
-                            <label for="ecuReference">ECU Reference / Calculator <span style="color: var(--gray-400); font-weight: 400;">(optional)</span></label>
+                            <label for="ecuReference">ECU reference / calculator (optional)</label>
                             <input type="text" id="ecuReference" name="ecuReference" list="ecuReferences" maxlength="100"
-                                   placeholder="e.g., EDC17C64, MED17.5, MSD80 — leave blank if unknown">
+                                   placeholder="e.g. EDC17C64, MED17.5, MSD80">
                             <datalist id="ecuReferences">
                                 <option value="EDC17C64"></option>
                                 <option value="EDC17C50"></option>
@@ -95,7 +409,7 @@
                         </div>
 
                         <div class="form-group">
-                            <label for="service">Select Service</label>
+                            <label for="service">Select service</label>
                             <select id="service" name="service" required>
                                 <option value="">Choose a service...</option>
                                 <option value="Stage 1">STAGE 1 - 200€</option>
@@ -113,25 +427,24 @@
                             </select>
                         </div>
 
-                        <div class="form-group" id="customServiceGroup" style="display: none;">
-                            <label for="customServiceDescription">Specialized Tuning Description *</label>
-                            <textarea 
-                                id="customServiceDescription" 
-                                name="customServiceDescription" 
-                                rows="4" 
-                                placeholder="Please describe in detail what modifications you need. For example: Ethanol conversion, Stage 1 performance upgrade, FAP+EGR solution, or your custom needs..."
-                                style="padding: 12px 16px; background: var(--bg); border: 1px solid var(--border-color); border-radius: var(--radius-md); color: var(--text-light); font-size: 1rem; font-family: inherit; resize: vertical; width: 100%; min-height: 120px; transition: all var(--transition-base);"
+                        <div class="form-group full" id="customServiceGroup" style="display: none;">
+                            <label for="customServiceDescription">Specialized tuning description</label>
+                            <textarea
+                                id="customServiceDescription"
+                                name="customServiceDescription"
+                                rows="4"
+                                placeholder="Describe the modifications you need: ethanol conversion, stage 1 upgrade, FAP+EGR solution..."
                             ></textarea>
-                            <small style="color: var(--text-dark); font-size: 0.85rem; margin-top: 0.25rem; display: block;">
-                                Be as specific as possible about the modifications you need
-                            </small>
+                            <small class="field-note">Be as specific as possible about the modifications you need.</small>
                         </div>
 
-                        <div class="form-group">
+                        <div class="form-group full">
                             <div class="file-upload-wrapper">
                                 <label for="ecuFile" class="file-upload-button" id="ecuFileButton">
-                                    <span class="file-upload-icon" aria-hidden="true">📁</span>
-                                    <span class="file-upload-text">Choose ECU File</span>
+                                    <span class="file-upload-icon" aria-hidden="true">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M12 12v6"/><path d="m9 15 3-3 3 3"/></svg>
+                                    </span>
+                                    <span class="file-upload-text">Choose ECU file</span>
                                     <span class="file-upload-subtext">.bin, .hex, .ori, .winols, .dam</span>
                                 </label>
                                 <input type="file" id="ecuFile" name="ecuFile" accept=".bin,.hex,.ori,.winols,.dam" required aria-label="Choose ECU file">
@@ -140,8 +453,10 @@
                         </div>
 
                         <button type="submit" class="btn btn-primary" id="submitBtn">
-                            <span class="btn-text">Upload & Submit Order</span>
-                            <span class="btn-loader" id="btnLoader" style="display: none;">⏳</span>
+                            <span class="btn-text">Send your ECU file</span>
+                            <span class="btn-loader" id="btnLoader" style="display: none;" aria-hidden="true">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                            </span>
                         </button>
 
                         <div class="upload-progress" id="uploadProgress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
@@ -149,310 +464,43 @@
                         </div>
                     </form>
 
+                    <aside class="order-aside">
+                        <h3>Your ECU file in 48 hours</h3>
+                        <ol class="aside-steps">
+                            <li>Send the file and your details</li>
+                            <li>A tuner remaps it for your service</li>
+                            <li>You get it back, ready to flash and drive</li>
+                        </ol>
+                        <p class="aside-note">Confirmation by email and WhatsApp. One file, one service, one check before it comes back.</p>
+                    </aside>
+
                     <div id="message" class="message"></div>
-                </div>
-            </div>
-        </section>
-
-        <section class="services-section">
-            <div class="container">
-                <h2 class="section-title">🔧 Our Premium Services</h2>
-                <p class="section-subtitle">Professional ECU modifications tailored to your vehicle's needs</p>
-                <div class="services-grid">
-                    <!-- Performance group -->
-                    <div class="service-group" data-group="performance">
-                        <h3 class="service-group-title">Performance</h3>
-                        <div class="service-card" data-service="stage1">
-                            <div class="service-background"></div>
-                            <div class="service-content">
-                                <div class="service-icon">⚡</div>
-                                <h3 class="service-title">Stage 1 - 200€</h3>
-                                <p class="service-description">Performance upgrade with optimized fuel injection and boost</p>
-                                <ul class="service-features">
-                                    <li>✓ +15-30% horsepower</li>
-                                    <li>✓ +20-40% torque</li>
-                                    <li>✓ Optimized fuel maps</li>
-                                </ul>
-                            </div>
-                        </div>
-
-                        <div class="service-card" data-service="e85">
-                            <div class="service-background"></div>
-                            <div class="service-content">
-                                <div class="service-icon">🌿</div>
-                                <h3 class="service-title">Conversion E85 - 250€</h3>
-                                <p class="service-description">Convert your vehicle to run on E85 bioethanol fuel</p>
-                                <ul class="service-features">
-                                    <li>✓ Lower fuel costs</li>
-                                    <li>✓ Optimized ethanol maps</li>
-                                    <li>✓ Eco-friendly performance</li>
-                                </ul>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Anti-pollution group -->
-                    <div class="service-group" data-group="anti-pollution">
-                        <h3 class="service-group-title">Anti-pollution</h3>
-                        <div class="service-card" data-service="fap">
-                            <div class="service-background"></div>
-                            <div class="service-content">
-                                <div class="service-icon">🔥</div>
-                                <h3 class="service-title">Solution FAP - 100€</h3>
-                                <p class="service-description">Reliable solution for particulate filter issues</p>
-                                <ul class="service-features">
-                                    <li>✓ Eliminates regeneration issues</li>
-                                    <li>✓ Improved engine reliability</li>
-                                    <li>✓ Clean diagnostic scan</li>
-                                </ul>
-                            </div>
-                        </div>
-
-                        <div class="service-card" data-service="egr">
-                            <div class="service-background"></div>
-                            <div class="service-content">
-                                <div class="service-icon">♻️</div>
-                                <h3 class="service-title">Solution EGR - 70€</h3>
-                                <p class="service-description">Reliable solution for EGR valve issues</p>
-                                <ul class="service-features">
-                                    <li>✓ Reduced carbon buildup</li>
-                                    <li>✓ Improved reliability</li>
-                                    <li>✓ Clean diagnostic scan</li>
-                                </ul>
-                            </div>
-                        </div>
-
-                        <div class="service-card" data-service="fap-egr">
-                            <div class="service-background"></div>
-                            <div class="service-content">
-                                <div class="service-icon">🔥</div>
-                                <h3 class="service-title">FAP + EGR - 120€</h3>
-                                <p class="service-description">Reliable solution for particulate filter and EGR issues</p>
-                                <ul class="service-features">
-                                    <li>✓ Eliminates regeneration issues</li>
-                                    <li>✓ Reduced carbon buildup</li>
-                                    <li>✓ Improved engine reliability</li>
-                                </ul>
-                            </div>
-                        </div>
-
-                        <div class="service-card" data-service="adblue">
-                            <div class="service-background"></div>
-                            <div class="service-content">
-                                <div class="service-icon">💧</div>
-                                <h3 class="service-title">Solution AD Blue - 100€</h3>
-                                <p class="service-description">Reliable solution for AdBlue system faults</p>
-                                <ul class="service-features">
-                                    <li>✓ No more AdBlue warnings</li>
-                                    <li>✓ Improved reliability</li>
-                                    <li>✓ Clean diagnostic scan</li>
-                                </ul>
-                            </div>
-                        </div>
-
-                        <div class="service-card" data-service="utilitaire">
-                            <div class="service-background"></div>
-                            <div class="service-content">
-                                <div class="service-icon">🚚</div>
-                                <h3 class="service-title">UTILITAIRE (FAP+EGR+AdBlue) - 150€</h3>
-                                <p class="service-description">Complete anti-pollution solution for utility vehicles</p>
-                                <ul class="service-features">
-                                    <li>✓ FAP + EGR + AdBlue</li>
-                                    <li>✓ Improved reliability</li>
-                                    <li>✓ Reduced downtime</li>
-                                </ul>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Electronique / Diagnostic group -->
-                    <div class="service-group" data-group="electronique-diagnostic">
-                        <h3 class="service-group-title">Electronique / Diagnostic</h3>
-                        <div class="service-card" data-service="immo-off">
-                            <div class="service-background"></div>
-                            <div class="service-content">
-                                <div class="service-icon">🔑</div>
-                                <h3 class="service-title">IMMO OFF - 100€</h3>
-                                <p class="service-description">Immobilizer solution for starting issues</p>
-                                <ul class="service-features">
-                                    <li>✓ Resolve immobilizer faults</li>
-                                    <li>✓ ECU replacement support</li>
-                                    <li>✓ Tested start-up</li>
-                                </ul>
-                            </div>
-                        </div>
-
-                        <div class="service-card" data-service="recherche">
-                            <div class="service-background"></div>
-                            <div class="service-content">
-                                <div class="service-icon">🛠️</div>
-                                <h3 class="service-title">RECHERCHE DE PANNE - Dès 50€</h3>
-                                <p class="service-description">In-depth fault finding for complex breakdowns</p>
-                                <ul class="service-features">
-                                    <li>✓ Full fault analysis</li>
-                                    <li>✓ Expert diagnosis</li>
-                                    <li>✓ Repair guidance</li>
-                                </ul>
-                            </div>
-                        </div>
-
-                        <div class="service-card" data-service="diagnostic">
-                            <div class="service-background"></div>
-                            <div class="service-content">
-                                <div class="service-icon">🔍</div>
-                                <h3 class="service-title">DIAGNOSTIC - 40€</h3>
-                                <p class="service-description">Complete electronic diagnostic of your vehicle</p>
-                                <ul class="service-features">
-                                    <li>✓ Full system scan</li>
-                                    <li>✓ Detailed report</li>
-                                    <li>✓ Expert advice</li>
-                                </ul>
-                            </div>
-                        </div>
-
-                        <div class="service-card" data-service="dtc-off">
-                            <div class="service-background"></div>
-                            <div class="service-content">
-                                <div class="service-icon">🔧</div>
-                                <h3 class="service-title">DTC OFF - 40€</h3>
-                                <p class="service-description">Eliminate specific fault codes and prevent check engine lights</p>
-                                <ul class="service-features">
-                                    <li>✓ Remove error codes</li>
-                                    <li>✓ Clear check engine light</li>
-                                    <li>✓ Clean diagnostic scan</li>
-                                </ul>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Autres group -->
-                    <div class="service-group" data-group="autres">
-                        <h3 class="service-group-title">Autres</h3>
-                        <div class="service-card" data-service="autres">
-                            <div class="service-background"></div>
-                            <div class="service-content">
-                                <div class="service-icon">⭐</div>
-                                <h3 class="service-title">AUTRES PRESTATIONS - SUR DEMANDE</h3>
-                                <p class="service-description">Autres prestations sur demande - contact us for a quote</p>
-                                <ul class="service-features">
-                                    <li>✓ Tailored modifications</li>
-                                    <li>✓ Expert advice</li>
-                                    <li>✓ On request pricing</li>
-                                </ul>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <section class="vehicle-coverage" id="vehicle-coverage">
-            <div class="container">
-                <h2 class="section-title">Supported Vehicles</h2>
-                <p class="section-subtitle">From daily drivers to performance builds — our engineers map and tune ECUs across all major brands.</p>
-                <div class="coverage-stats">
-                    <div class="stat-item">
-                        <span class="stat-number" data-target="2500">0</span><span class="stat-suffix">+</span>
-                        <div class="stat-label">ECUs Tuned</div>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-number" data-target="35">0</span><span class="stat-suffix">+</span>
-                        <div class="stat-label">Brands Supported</div>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-number" data-target="300">0</span><span class="stat-suffix">+</span>
-                        <div class="stat-label">Models Mapped</div>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-number" data-target="48">0</span>
-                        <div class="stat-label">Hour Avg Turnaround</div>
-                    </div>
-                </div>
-                <div class="brands-grid">
-                    <div class="brand-card">
-                        <div class="brand-name">BMW</div>
-                        <div class="brand-ecus">EDC17C64 · MSD80 · MEVD17.2</div>
-                    </div>
-                    <div class="brand-card">
-                        <div class="brand-name">Audi</div>
-                        <div class="brand-ecus">EDC17C46 · MED17.1 · Simos 18</div>
-                    </div>
-                    <div class="brand-card">
-                        <div class="brand-name">Volkswagen</div>
-                        <div class="brand-ecus">EDC17C64 · EDC17CP45 · MED17.5</div>
-                    </div>
-                    <div class="brand-card">
-                        <div class="brand-name">Mercedes-Benz</div>
-                        <div class="brand-ecus">CRD3 · MED17.7 · EDC17C50</div>
-                    </div>
-                    <div class="brand-card">
-                        <div class="brand-name">Opel</div>
-                        <div class="brand-ecus">MJD 8F3 · EDC17C59 · DCM3.7</div>
-                    </div>
-                    <div class="brand-card">
-                        <div class="brand-name">Ford</div>
-                        <div class="brand-ecus">SID208 · SID310 · SIM2K</div>
-                    </div>
-                    <div class="brand-card">
-                        <div class="brand-name">Renault</div>
-                        <div class="brand-ecus">EDC17C42 · CRD3 · MED17</div>
-                    </div>
-                    <div class="brand-card">
-                        <div class="brand-name">Peugeot/Citroën</div>
-                        <div class="brand-ecus">EDC17C60 · MEV17.4 · IAW</div>
-                    </div>
-                    <div class="brand-card">
-                        <div class="brand-name">Fiat</div>
-                        <div class="brand-ecus">MJD 8F3 · EDC16C39 · IAW 7GF</div>
-                    </div>
-                    <div class="brand-card">
-                        <div class="brand-name">Toyota</div>
-                        <div class="brand-ecus">Denso SH7058 · DCM3.7</div>
-                    </div>
-                    <div class="brand-card">
-                        <div class="brand-name">Škoda</div>
-                        <div class="brand-ecus">EDC17C46 · MED17.5 · Simos</div>
-                    </div>
-                    <div class="brand-card">
-                        <div class="brand-name">Seat</div>
-                        <div class="brand-ecus">EDC17C46 · MED17.1 · Simos</div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <section class="process-section">
-            <div class="container">
-                <h2 class="section-title">How It Works</h2>
-                <div class="process-steps">
-                    <div class="step">
-                        <div class="step-number">1</div>
-                        <h3>Upload Your File</h3>
-                        <p>Send us your original ECU file (.bin, .hex, .ori, etc.)</p>
-                    </div>
-                    <div class="step">
-                        <div class="step-number">2</div>
-                        <h3>We Process It</h3>
-                        <p>Our experts modify your file using specialized tuning software</p>
-                    </div>
-                    <div class="step">
-                        <div class="step-number">3</div>
-                        <h3>Download Modified File</h3>
-                        <p>Receive your modified file ready to flash to your vehicle</p>
-                    </div>
                 </div>
             </div>
         </section>
     </main>
 
-    <footer class="footer">
-        <div class="container">
-            <p>&copy; AZ Performance. Phone/WhatsApp +213663334559 | TikTok moh.prog | Facebook AZ performance.</p>
+    <footer class="footer closing" style="--h: 1">
+        <div class="wrap">
+            <div class="footer-main">
+                <span class="footer-brand">
+                    <span class="mark" aria-hidden="true">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></svg>
+                    </span>
+                    AZ Performance
+                </span>
+                <p class="footer-contact">
+                    Phone / WhatsApp +213663334559 · TikTok moh.prog · Facebook AZ performance
+                </p>
+            </div>
+            <div class="footer-legal">
+                <span>© 2026 AZ Performance</span>
+            </div>
         </div>
     </footer>
 
+    <!-- config.js is served at runtime by client-server.js -->
     <script src="config.js"></script>
     <script src="app.js" defer></script>
 </body>
 </html>
-

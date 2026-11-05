@@ -12,4 +12,5 @@ Private key of firebase storage.json
 **/firebase-*.json
 !firebase.json
 !firebase.emulators.json
+.taste-skill/
 
