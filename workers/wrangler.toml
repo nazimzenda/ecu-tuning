@@ -1,0 +1,49 @@
+# ECU Tuning API — Cloudflare Workers deployment config
+# Docs: https://developers.cloudflare.com/workers/wrangler/configuration/
+
+name = "ecu-tuning-api"
+main = "src/index.js"
+compatibility_date = "2025-01-01"
+workers_dev = true
+
+# ---------------------------------------------------------------------------
+# D1 database (SQLite). Apply workers/schema.sql after `wrangler d1 create`.
+#   npx wrangler d1 create ecu-tuning-db
+# → paste the printed database_id below.
+# ---------------------------------------------------------------------------
+[[d1_databases]]
+binding = "DB"
+database_name = "ecu-tuning-db"
+database_id = "" # TODO: paste database_id from `npx wrangler d1 create ecu-tuning-db`
+
+# ---------------------------------------------------------------------------
+# R2 bucket for ECU files (originals + modified).
+#   npx wrangler r2 bucket create ecu-tuning-files
+# ---------------------------------------------------------------------------
+[[r2_buckets]]
+binding = "FILES"
+bucket_name = "ecu-tuning-files"
+
+# ---------------------------------------------------------------------------
+# Vars (non-secret, safe to commit). Secrets go in the section below.
+# ---------------------------------------------------------------------------
+[vars]
+# Admin inbox for new-order notifications. Empty = notifications skipped.
+ADMIN_EMAIL = ""
+# Admin panel URL used in notification emails. Empty = falls back to the worker origin.
+ADMIN_URL = ""
+# Comma-separated CORS allowlist, e.g. "https://ecu.example.com,https://admin.example.com".
+# Empty = no cross-origin requests allowed (same-origin only). "*" = reflect any origin
+# (note: with "*" the HttpOnly session cookie is not sent cross-origin by browsers —
+# use explicit origins if you rely on cookie auth; the x-admin-session header works either way).
+ALLOWED_ORIGINS = ""
+# Sender address for emails. Must be verified on your Resend account.
+EMAIL_FROM = "AZ Performance <onboarding@resend.dev>"
+
+# ---------------------------------------------------------------------------
+# SECRETS — set with `npx wrangler secret put <NAME>`, NEVER put values here.
+#   npx wrangler secret put ADMIN_PASSWORD     # admin login password (no default — login fails closed if unset)
+#   npx wrangler secret put SESSION_SECRET     # HMAC key for admin session tokens, e.g. `openssl rand -hex 32`
+#   npx wrangler secret put RESEND_API_KEY     # Resend API key (email notifications skipped if unset)
+#   npx wrangler secret put R2_SIGNING_SECRET  # HMAC key for presigned upload/download tickets, e.g. `openssl rand -hex 32`
+# ---------------------------------------------------------------------------

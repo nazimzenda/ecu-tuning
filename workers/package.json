@@ -1,0 +1,11 @@
+{
+  "name": "ecu-tuning-worker",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Cloudflare Workers port of the ECU Tuning API (no runtime dependencies)",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy"
+  }
+}
