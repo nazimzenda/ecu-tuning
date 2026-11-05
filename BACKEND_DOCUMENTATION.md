@@ -29,7 +29,7 @@
 |---|---|---|---|
 | `server.js` | 4000 (`API_PORT`) | `node server.js` | `db.init()` before listen; exits on DB failure |
 | `client-server.js` | 3000 (`CLIENT_PORT`) | `node client-server.js` | EADDRINUSE handler present |
-| `admin-server.js` | 3001 (`ADMIN_PORT`) | `node admin-server.js` | Only server with global error handlers; compose overrides port to **3002** (⚠️ mismatch with nginx upstream 3001) |
+| `admin-server.js` | 3001 (`ADMIN_PORT`) | `node admin-server.js` | Only server with global error handlers; compose and nginx both use 3001 |
 
 All three run inside one container (nginx + `sh -c` chaining) or as 3 compose services. No process supervisor (❌ no PM2/systemd; `wait` returns 0 even if all crash).
 
@@ -108,8 +108,8 @@ Client server routes: `/config.js`, static `public/`, `*` → `index.html`. Admi
 |---|---|---|
 | `package.json` | deps + scripts (`start`, `emulators`, `migrate:firestore`) | ✅ |
 | `.env` | local env — **inert** (nothing loads it) | ⚠️ |
-| `nginx.conf` | reverse proxy :8080 → 4000/3000/3001, 60M body limit | ✅ (⚠️ no TLS/security headers; admin upstream 3001 vs compose 3002) |
-| `firebase.json` / `firebase.emulators.json` | Firestore/storage rules + emulators (UI port drift 4000 vs 4005) | ⚠️ |
+| `nginx.conf` | reverse proxy :8080 → 4000/3000/3001, 60M body limit | ✅ (⚠️ no TLS/security headers) |
+| `firebase.json` / `firebase.emulators.json` | Firestore/storage rules + emulators (UI 4005, Firestore 8080, Auth 9099, Storage 9199) | ✅ |
 | `firestore.rules` / `storage.rules` | rules — expired open / deny-all | ❌ |
 | `Dockerfile`, `docker-compose*.yml`, `railway.json`, `Procfile` | deployment | ⚠️ (see infrastructure audit) |
 

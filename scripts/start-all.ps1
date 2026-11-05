@@ -1,3 +1,4 @@
+# Windows-only helper (PowerShell). On Linux/macOS use npm run start:api/client/admin directly.
 <#
 .SYNOPSIS
   Start API, Client and Admin servers each in a new PowerShell window.

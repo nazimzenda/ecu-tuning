@@ -83,7 +83,7 @@
 |---|---|---|
 | 8080 | nginx (single-container entry) | public |
 | 4000 | API | internal (or public in dev) |
-| 3000 / 3001 (3002 in compose) | client / admin | internal (or public in dev) |
+| 3000 / 3001 | client / admin | internal (or public in dev) |
 | 5001, 8080, 9099, 9199, UI 4005 | Firebase emulators | local dev only |
 
 ## 9. Domain & SSL

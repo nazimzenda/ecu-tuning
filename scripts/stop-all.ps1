@@ -1,3 +1,4 @@
+# Windows-only helper (PowerShell). On Linux/macOS stop node processes with kill/pkill.
 <#
 .SYNOPSIS
   Stop any processes currently listening on API/Client/Admin ports.
@@ -5,7 +6,7 @@
   Finds processes with TCP listeners on ports and stops them safely.
 #>
 
-$ports = @(4000,4001,4005,3000,3001)
+$ports = @(4000,4005,3000,3001)
 $stopped = @()
 
 foreach ($p in $ports) {

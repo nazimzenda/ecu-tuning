@@ -701,8 +701,8 @@ CUSTOMER BROWSER (Port 3000)
 ├──────────────────────────────────────────────────────────┤
 │                                                           │
 │  ┌────────────────────────────────────────────────────┐ │
-│  │ INTERNET USERS                                     │ │
-│  │ https://ecu-tuning-production.up.railway.app      │ │
+│  │ SOURCE (GitHub repo)                              │ │
+│  │ https://github.com/nazimzenda/ecu-tuning          │ │
 │  └────────────────────────────────────────────────────┘ │
 │                        │                                 │
 │                        ▼                                 │

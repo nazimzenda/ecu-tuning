@@ -1,3 +1,4 @@
+# Windows-only helper (PowerShell). On Linux/macOS use curl against the same URLs.
 <#
 .SYNOPSIS
   Simple smoke tests for local services.

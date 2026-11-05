@@ -1,8 +1,10 @@
+> **URLs synced (2026-11-05):** API `http://localhost:4000` · Client `http://localhost:3000` · Admin `http://localhost:3001` · nginx `:8080` (container) · Repo `https://github.com/nazimzenda/ecu-tuning.git`
+
 # 🚗 ECU Tuning Pro - Professional ECU File Modification Service
 
 A complete, production-ready web application for professional ECU tuning services. Clients can upload ECU files, select tuning services, track orders, and receive notifications. Admins manage orders through a powerful admin panel with detailed order views.
 
-**Live Demo:** Deployed on Railway with SQLite database and Resend email integration.
+**Local URLs:** Client `http://localhost:3000` · Admin `http://localhost:3001` · API `http://localhost:4000` (see Quick Start below).
 
 ---
 
@@ -46,6 +48,18 @@ A complete, production-ready web application for professional ECU tuning service
 - **GPU Acceleration**: Hardware-accelerated transforms
 - **Preload/Preconnect**: Critical resources loaded early
 - **Deferred Scripts**: JavaScript loads after HTML parsing
+
+### 🌍 Worldwide Lead Intelligence (Admin)
+- **Worldwide map + lead database** at `/admin/leads`
+- **OpenStreetMap discovery** via Overpass with Nominatim fallback
+- **Official-website enrichment**: public email, phone, WhatsApp, socials, address, structured data
+- **Verification + scoring** with evidence links and confidence reasons
+- **Compliance guardrail**: flags emissions-delete/defeat wording for review; no automated outreach
+- **Research runs, CSV import/export, opt-outs and a human-managed pipeline**
+- **Starter dataset** of real OSM business records: `npm run leads:seed`
+- Full documentation: [`leads/README.md`](leads/README.md)
+
+The research workspace is deliberately limited to **lawful ECU calibration, diagnostics and emissions-system repair**. It does not market emissions-control defeat or modifications that violate applicable road-emissions rules.
 
 ---
 
@@ -132,10 +146,22 @@ myapp/
 │       ├── /                  # Original ECU files
 │       └── modified/          # Modified ECU files ready for download
 │
+├── 🌍 LEAD RESEARCH
+│   └── leads/
+│       ├── catalog.js         # Priority markets, keywords, compliance patterns
+│       ├── agent.js           # Discovery → enrichment → verification pipeline
+│       ├── enrich.js          # Safe website fetcher + public contact extraction
+│       ├── sources/           # Overpass and Nominatim connectors
+│       ├── store.js           # Lead/job SQLite store (same database file)
+│       ├── routes.js          # Admin-only /api/leads API
+│       ├── seed.js            # Curated real OSM starter set
+│       ├── cli.js             # Command-line research runner
+│       └── README.md          # Method, API, compliance and scaling notes
+│
 ├── 🔧 SCRIPTS (PowerShell helpers)
 │   ├── start-clean.ps1        # One-command startup (stops all → starts all)
 │   ├── start-clean-debug.ps1  # Debug mode (same terminal, capture crashes)
-│   ├── stop-all.ps1           # Stop all services on ports 3000, 3001, 4000, 4001, 4005
+│   ├── stop-all.ps1           # Stop all services on ports 3000, 3001, 4000, 4005
 │   ├── check-ports.ps1        # Check which ports are listening
 │   ├── e2e-smoke.ps1          # Smoke test all endpoints
 │   └── backup-before-migrate.ps1  # Backup database before migration
@@ -183,6 +209,20 @@ myapp/
 |--------|----------|-------------|
 | `GET` | `/api/orders/:id/download/original` | Download original ECU file |
 | `GET` | `/api/orders/:id/download/modified` | Download modified ECU file |
+
+### Lead Research (Admin)
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/api/leads` | Filtered, paginated lead database |
+| `GET` | `/api/leads/stats` | Coverage and potential totals |
+| `GET` | `/api/leads/map` | Map points |
+| `GET` | `/api/leads/:id` | Full lead + evidence |
+| `PATCH` | `/api/leads/:id` | Pipeline, notes and contact updates |
+| `POST` | `/api/leads/:id/verify` | Re-check the official website |
+| `POST` | `/api/leads/research` | Start a bounded research job |
+| `GET` | `/api/leads/jobs` | Research run status |
+| `GET` | `/api/leads/export` | CSV export (filter-aware) |
+| `POST` | `/api/leads/import` | JSON/CSV-derived import |
 
 ### Health
 | Method | Endpoint | Description |
@@ -402,6 +442,9 @@ EMAIL_PASSWORD=your-app-password
 TWILIO_ACCOUNT_SID=ACxxxx...
 TWILIO_AUTH_TOKEN=your-token
 TWILIO_WHATSAPP_FROM=whatsapp:+14155238886
+
+# Lead research (public data providers use this contact in the User-Agent)
+LEAD_RESEARCH_CONTACT=ops@yourdomain.com
 ```
 
 ---

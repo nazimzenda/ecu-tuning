@@ -1,3 +1,4 @@
+# Windows-only helper (PowerShell). On Linux/macOS use: ss -ltn or lsof -i.
 <#
 .SYNOPSIS
   Check whether service ports are listening and show owning PIDs.
@@ -7,8 +8,8 @@
 
 Param()
 
-$ports = @(4000,4001,4005,3000,3001)
-$names = @{4000='API (4000)'; 4001='API (4001)'; 4005='Emulator UI (4005)'; 3000='Client UI'; 3001='Admin Panel'}
+$ports = @(4000,4005,3000,3001)
+$names = @{4000='API (4000)'; 4005='Emulator UI (4005)'; 3000='Client UI'; 3001='Admin Panel'}
 
 foreach ($p in $ports) {
     $conn = Get-NetTCPConnection -LocalPort $p -State Listen -ErrorAction SilentlyContinue

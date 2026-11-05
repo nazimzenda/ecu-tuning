@@ -1,8 +1,9 @@
+# Windows-only helper (PowerShell). On Linux/macOS use npm run start:api/client/admin directly.
 <#
 .SYNOPSIS
   Stop known service ports (safely) and start emulators + API/Client/Admin in new windows.
 .DESCRIPTION
-  1. Runs scripts/stop-all.ps1 to stop node processes on common ports (4000,4001,4005,3000,3001).
+  1. Runs scripts/stop-all.ps1 to stop node processes on common ports (4000,4005,3000,3001).
   2. Starts Firebase emulators in a new window.
   3. Starts API, Client and Admin servers in individual windows with recommended env vars for emulators.
 
@@ -12,7 +13,7 @@
 $root = Resolve-Path "$PSScriptRoot\.."
 Set-Location $root
 
-Write-Host "Stopping known listeners (4000,4001,4005,3000,3001)..." -ForegroundColor Cyan
+Write-Host "Stopping known listeners (4000,4005,3000,3001)..." -ForegroundColor Cyan
 & "$PSScriptRoot\stop-all.ps1"
 
 Write-Host "Starting Firebase emulators in a new window..." -ForegroundColor Cyan

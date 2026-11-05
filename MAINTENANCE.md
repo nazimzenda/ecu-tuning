@@ -151,7 +151,7 @@ Invoke-WebRequest -Uri http://localhost:3001/config.js -UseBasicParsing
 5. If admin exits, copy stdout/stderr and the stack trace for analysis.
 
 **Docker notes**
-- `docker-compose.yml` spins up `api`, `client`, and `admin`. A known mapping difference: `docker-compose.yml` may map the Admin panel to `3002` in some configs — check the compose file before assuming ports.
+- `docker-compose.yml` spins up `api`, `client`, and `admin` (canonical ports 4000/3000/3001; admin maps `${ADMIN_PORT:-3001}:3001`).
 - Use `docker-compose logs -f` to tail logs for services.
 
 **Maintenance & backup schedule**

@@ -65,7 +65,7 @@ flowchart TB
     subgraph Compose["docker-compose (3 services) — ✗ broken FE-002"]
         S2[api :4000]
         C2[client :3000]
-        A2[admin :3002]
+        A2[admin :3001]
         V2[(bind mounts:<br/>./database.sqlite, ./uploads)]
     end
     ext[[Resend / SMTP / Twilio]] -.->|"HTTPS outbound"| S1
@@ -79,7 +79,7 @@ Ports & protocols:
 | 8080 | nginx (entry) | HTTP |
 | 4000 | API `server.js` | HTTP (JSON API) |
 | 3000 | client `client-server.js` | HTTP (static) |
-| 3001 | admin `admin-server.js` (compose: 3002) | HTTP (static) |
-| 5001/8080/9099/9199 | Firebase emulators (functions/firestore/auth/storage) + UI 4005 (stale config: 4000) | HTTP (dev only) |
+| 3001 | admin `admin-server.js` (compose: 3001) | HTTP (static) |
+| 5001/8080/9099/9199 | Firebase emulators (functions/firestore/auth/storage) + UI 4005 | HTTP (dev only) |
 
 Volumes: `database.sqlite` (persistent data), `uploads/` (ECU + modified files). ⚠️ Fresh-clone compose: gitignored `database.sqlite` bind mount becomes a directory → crash loop.
