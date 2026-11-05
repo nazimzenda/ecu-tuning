@@ -869,6 +869,9 @@ async function startServer() {
       console.log(`🚀 Server running on ${url}`);
       console.log(`📁 Uploads directory: ${uploadsDir}`);
       console.log(`🌐 Environment: ${isCloud ? 'Cloud' : 'Local'}`);
+      console.log(
+        `🌍 Lead research: ${process.env.LEAD_RESEARCH_CONTACT ? 'contact set' : '⚠️ set LEAD_RESEARCH_CONTACT before bulk research'}`
+      );
       
       // Email status
       if (resend) {
