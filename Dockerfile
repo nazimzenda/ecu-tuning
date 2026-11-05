@@ -4,8 +4,8 @@ FROM node:18-alpine
 # Set working directory
 WORKDIR /app
 
-# Install Nginx
-RUN apk add --no-cache nginx
+# Install Nginx and tini (PID 1 init for signal forwarding and zombie reaping)
+RUN apk add --no-cache nginx tini
 
 # Copy package files
 COPY package*.json ./
@@ -37,6 +37,17 @@ EXPOSE 8080
 ENV NODE_ENV=production
 ENV PORT=8080
 
+# Run tini as PID 1 so signals reach the shell and zombie processes are reaped
+ENTRYPOINT ["/sbin/tini", "--"]
+
+# NOTE: intentionally no USER directive - the container runs as root because
+# nginx needs root to bind ports and manage its worker processes. All Node
+# processes are reaped by tini (PID 1) above.
+
 # Start Nginx and all three Node servers with error output
 CMD sh -c "nginx -t && nginx && sleep 2 && node server.js & node client-server.js & node admin-server.js & wait"
+
+# Nginx must answer on 8080 for the container to be healthy
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+  CMD wget -q --spider http://localhost:8080/ || exit 1
 

@@ -10,6 +10,29 @@ function escapeHtml(s) {
     return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
+// POST a FormData payload via XHR so upload progress can be reported.
+// Resolves with { ok, status, data } like fetch() would.
+function uploadWithProgress(url, formData, headers, onProgress) {
+    return new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', url);
+        Object.keys(headers || {}).forEach(key => xhr.setRequestHeader(key, headers[key]));
+        xhr.upload.addEventListener('progress', (e) => {
+            if (e.lengthComputable && typeof onProgress === 'function') {
+                onProgress(Math.min(100, Math.round((e.loaded / e.total) * 100)));
+            }
+        });
+        xhr.addEventListener('load', () => {
+            let data = {};
+            try { data = JSON.parse(xhr.responseText || '{}'); } catch (err) { /* non-JSON response */ }
+            resolve({ ok: xhr.status >= 200 && xhr.status < 300, status: xhr.status, data });
+        });
+        xhr.addEventListener('error', () => reject(new Error('Network error during upload')));
+        xhr.addEventListener('abort', () => reject(new Error('Upload aborted')));
+        xhr.send(formData);
+    });
+}
+
 const SERVICE_PRICES = {
     'Stage 1': '200€',
     'E85': '250€',
@@ -124,7 +147,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     window.addEventListener('click', (e) => {
         if (e.target === modal) {
-            modal.classList.remove('show');
+            modal.classList.remove('active');
         }
     });
 
@@ -189,35 +212,42 @@ document.addEventListener('DOMContentLoaded', () => {
         const completed = orders.filter(o => o.status === 'completed').length;
 
         document.getElementById('totalOrders').textContent = total;
-        document.getElementById('totalOrders').parentElement.style.cursor = 'pointer';
         document.getElementById('pendingOrders').textContent = pending;
-        document.getElementById('pendingOrders').parentElement.style.cursor = 'pointer';
         document.getElementById('processingOrders').textContent = processing;
-        document.getElementById('processingOrders').parentElement.style.cursor = 'pointer';
         document.getElementById('completedOrders').textContent = completed;
-        document.getElementById('completedOrders').parentElement.style.cursor = 'pointer';
 
-        // Add click handlers to stat cards
-        document.getElementById('totalOrders').parentElement.onclick = () => filterByStatus(null);
-        document.getElementById('pendingOrders').parentElement.onclick = () => filterByStatus('pending');
-        document.getElementById('processingOrders').parentElement.onclick = () => filterByStatus('processing');
-        document.getElementById('completedOrders').parentElement.onclick = () => filterByStatus('completed');
+        // Add click handlers to stat cards (assignment-based so handlers never stack)
+        bindStatCard(document.getElementById('totalOrders').parentElement, null);
+        bindStatCard(document.getElementById('pendingOrders').parentElement, 'pending');
+        bindStatCard(document.getElementById('processingOrders').parentElement, 'processing');
+        bindStatCard(document.getElementById('completedOrders').parentElement, 'completed');
     }
 
-    function filterByStatus(status) {
+    function bindStatCard(card, status) {
+        card.onclick = (e) => filterByStatus(e, status);
+        card.onkeydown = (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                filterByStatus(e, status);
+            }
+        };
+    }
+
+    function filterByStatus(e, status) {
         filterStatus = status;
         renderOrders();
-        
-        // Highlight active filter
+
+        // Reset highlight on all cards
         document.querySelectorAll('.stat-card').forEach(card => {
             card.style.opacity = '1';
             card.style.transform = 'scale(1)';
         });
-        
-        if (status) {
-            event.currentTarget.style.opacity = '1';
-            event.currentTarget.style.transform = 'scale(1.05)';
-            event.currentTarget.style.borderColor = 'var(--gold)';
+
+        // Highlight active filter
+        if (status && e && e.currentTarget) {
+            e.currentTarget.style.opacity = '1';
+            e.currentTarget.style.transform = 'scale(1.05)';
+            e.currentTarget.style.borderColor = 'var(--gold)';
         }
     }
 
@@ -226,7 +256,7 @@ document.addEventListener('DOMContentLoaded', () => {
         renderOrders();
     }
 
-    window.filterByStatus = filterByStatus;
+    window.filterByStatus = (status) => filterByStatus(null, status);
     window.searchOrders = searchOrders;
 
     function renderOrders() {
@@ -255,10 +285,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         ordersList.innerHTML = filteredOrders.map(order => {
-            const customDesc = order.custom_service_description 
+            const esc = escapeHtml;
+            const orderId = Number(order.id);
+            const customDesc = order.custom_service_description
                 ? `<div class="order-info-item" style="grid-column: 1 / -1;">
                     <div class="order-info-label">Custom Service Description</div>
-                    <div class="order-info-value" style="background: var(--dark-gray); padding: 1rem; border-radius: 6px; white-space: pre-wrap; color: var(--primary-yellow);">${order.custom_service_description}</div>
+                    <div class="order-info-value" style="background: var(--dark-gray); padding: 1rem; border-radius: var(--radius-sm); white-space: pre-wrap; color: var(--gold);">${esc(order.custom_service_description)}</div>
                    </div>`
                 : '';
 
@@ -266,68 +298,68 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="order-card">
                 <div class="order-header">
                     <div>
-                        <div class="order-id">Order #${String(order.id).padStart(3, '0')}</div>
+                        <div class="order-id">Order #${String(orderId).padStart(3, '0')}</div>
                         <div style="color: var(--text-dark); font-size: 0.9rem; margin-top: 0.25rem;">
-                            ${new Date(order.created_at).toLocaleString()}
+                            ${esc(new Date(order.created_at).toLocaleString())}
                         </div>
                     </div>
-                    <span class="order-status ${order.status}">${order.status}</span>
+                    <span class="order-status ${esc(order.status)}">${esc(order.status)}</span>
                 </div>
                 <div class="order-info">
                     <div class="order-info-item">
                         <div class="order-info-label">File</div>
-                        <div class="order-info-value">${order.original_file_name}</div>
+                        <div class="order-info-value">${esc(order.original_file_name)}</div>
                     </div>
                     <div class="order-info-item">
                         <div class="order-info-label">Service</div>
-                        <div class="order-info-value">${order.service} — ${SERVICE_PRICES[order.service] || 'On request'}</div>
+                        <div class="order-info-value">${esc(order.service)} — ${SERVICE_PRICES[order.service] || 'On request'}</div>
                         <div style="font-size: 0.75rem; opacity: 0.7;">Prices in EUR</div>
                     </div>
                     <div class="order-info-item">
                         <div class="order-info-label">Vehicle</div>
-                        <div class="order-info-value">${order.vehicle_info}</div>
+                        <div class="order-info-value">${esc(order.vehicle_info)}</div>
                     </div>
                     <div class="order-info-item">
                         <div class="order-info-label">ECU Reference</div>
-                        <div class="order-info-value">${order.ecu_reference ? escapeHtml(order.ecu_reference) : 'Not provided'}</div>
+                        <div class="order-info-value">${order.ecu_reference ? esc(order.ecu_reference) : 'Not provided'}</div>
                     </div>
                     <div class="order-info-item">
                         <div class="order-info-label">Customer</div>
-                        <div class="order-info-value">${order.customer_name || 'N/A'}</div>
+                        <div class="order-info-value">${esc(order.customer_name || 'N/A')}</div>
                     </div>
                     <div class="order-info-item">
                         <div class="order-info-label">Email</div>
-                        <div class="order-info-value">${order.customer_email || 'N/A'}</div>
+                        <div class="order-info-value">${esc(order.customer_email || 'N/A')}</div>
                     </div>
                     <div class="order-info-item">
                         <div class="order-info-label">WhatsApp</div>
-                        <div class="order-info-value">${order.customer_phone || 'N/A'}</div>
+                        <div class="order-info-value">${esc(order.customer_phone || 'N/A')}</div>
                     </div>
                     ${customDesc}
                 </div>
                 <div class="order-actions">
-                    <button class="btn btn-primary" onclick="viewOrderDetails(${order.id})" style="grid-column: 1 / -1;">
+                    <button class="btn btn-primary" onclick="viewOrderDetails(${orderId})" style="grid-column: 1 / -1;">
                         🔍 View Full Details
                     </button>
-                    <button class="btn btn-secondary" onclick="downloadOriginal(${order.id})">
+                    <button class="btn btn-secondary" onclick="downloadOriginal(${orderId})">
                         📥 Download Original
                     </button>
                     ${order.status !== 'completed' ? `
-                        <button class="btn btn-warning" onclick="updateStatus(${order.id}, 'processing')">
+                        <button class="btn btn-warning" onclick="updateStatus(${orderId}, 'processing')">
                             ⚙️ Mark Processing
                         </button>
                     ` : ''}
                     ${order.status === 'processing' ? `
-                        <button class="btn btn-success" onclick="showUploadModal(${order.id})">
+                        <button class="btn btn-success" onclick="showUploadModal(${orderId})">
                             📤 Upload Modified
                         </button>
                     ` : ''}
                     ${order.modified_file_path ? `
-                        <button class="btn btn-primary" onclick="downloadModified(${order.id})">
+                        <button class="btn btn-primary" onclick="downloadModified(${orderId})">
                             ✅ Download Modified
                         </button>
                     ` : ''}
-                    <button class="btn btn-danger" onclick="deleteOrder(${order.id})">
+                    <button class="btn btn-danger" onclick="deleteOrder(${orderId})">
                         🗑️ Delete
                     </button>
                 </div>
@@ -387,6 +419,9 @@ document.addEventListener('DOMContentLoaded', () => {
                            accept=".bin,.hex,.ori,.winols,.dam" required
                            style="margin-top: 0.5rem;">
                 </div>
+                <div class="upload-progress" id="uploadProgress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+                    <div class="upload-progress-bar" id="uploadProgressBar"></div>
+                </div>
                 <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem; font-size: 1.1rem; padding: 1rem;">
                     UPLOAD MODIFIED FILE
                 </button>
@@ -412,9 +447,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const submitBtn = document.querySelector('#uploadModifiedForm button[type="submit"]');
+        const progress = document.getElementById('uploadProgress');
+        const progressBar = document.getElementById('uploadProgressBar');
         const originalText = submitBtn.textContent;
         submitBtn.textContent = 'UPLOADING...';
         submitBtn.disabled = true;
+        progress.classList.add('show');
+        progressBar.style.width = '0%';
+        progress.setAttribute('aria-valuenow', '0');
 
         try {
             const formData = new FormData();
@@ -423,30 +463,31 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log('Uploading modified file for order:', orderId);
             console.log('File:', fileInput.files[0].name, 'Size:', fileInput.files[0].size);
 
-            const response = await fetch(`${API_BASE_URL}/api/orders/${orderId}/modified`, {
-                method: 'POST',
-                headers: { 'x-admin-session': adminSessionId },
-                body: formData
-            });
+            const result = await uploadWithProgress(
+                `${API_BASE_URL}/api/orders/${orderId}/modified`,
+                formData,
+                { 'x-admin-session': adminSessionId },
+                (percent) => {
+                    progressBar.style.width = percent + '%';
+                    progress.setAttribute('aria-valuenow', String(percent));
+                }
+            );
 
-            console.log('Upload response status:', response.status);
+            console.log('Upload response status:', result.status);
 
-            if (response.status === 401) {
+            if (result.status === 401) {
                 adminSessionId = null;
                 localStorage.removeItem('adminSessionId');
                 showLoginScreen();
                 return;
             }
 
-            const data = await response.json();
-            console.log('Upload response data:', data);
-
-            if (response.ok) {
+            if (result.ok) {
                 alert('✅ Modified file uploaded successfully!\n\nThe customer will receive an email notification.');
                 modal.classList.remove('active');
                 loadOrders();
             } else {
-                alert(`❌ Error: ${data.error || 'Failed to upload file'}`);
+                alert(`❌ Error: ${result.data.error || 'Failed to upload file'}`);
             }
         } catch (error) {
             console.error('Error uploading file:', error);
@@ -454,6 +495,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } finally {
             submitBtn.textContent = originalText;
             submitBtn.disabled = false;
+            progress.classList.remove('show');
         }
     }
 
@@ -495,6 +537,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const order = orders.find(o => o.id === orderId);
         if (!order) return;
 
+        const esc = escapeHtml;
         const createdDate = new Date(order.created_at);
         const formattedDate = createdDate.toLocaleDateString('en-US', { 
             year: 'numeric', 
@@ -514,40 +557,40 @@ document.addEventListener('DOMContentLoaded', () => {
         const statusColor = statusColors[order.status] || statusColors['pending'];
 
         document.getElementById('modalTitle').innerHTML = `
-            <div style="display: flex; align-items: center; gap: 1.5rem; width: 100%; justify-content: space-between;">
+            <div style="display: flex; align-items: center; gap: 1.5rem; width: 100%; justify-content: space-between; flex-wrap: wrap;">
                 <div>
                     <div style="font-size: 0.85rem; color: var(--gray-400); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.3rem;">Order ID</div>
                     <h2 style="font-size: 2.2rem; margin: 0; background: var(--gradient-primary); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
-                        #${String(orderId).padStart(3, '0')}
+                        #${String(Number(orderId)).padStart(3, '0')}
                     </h2>
                 </div>
                 <div style="text-align: right;">
                     <div style="background: ${statusColor.bg}; border: 2px solid ${statusColor.border}; color: ${statusColor.text}; padding: 0.5rem 1.2rem; border-radius: 999px; font-weight: 700; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em;">
-                        ${order.status.toUpperCase()}
+                        ${esc(String(order.status).toUpperCase())}
                     </div>
                     <div style="color: var(--gray-400); font-size: 0.8rem; margin-top: 0.5rem;">
-                        ${formattedDate} • ${formattedTime}
+                        ${esc(formattedDate)} • ${esc(formattedTime)}
                     </div>
                 </div>
             </div>
         `;
 
         document.getElementById('modalBody').innerHTML = `
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 1.2rem;">
                 <!-- Left Column -->
                 <div style="display: grid; gap: 1rem;">
                     <!-- Vehicle Section - Compact -->
-                    <div style="background: rgba(0, 170, 255, 0.08); border: 2px solid rgba(0, 170, 255, 0.3); padding: 1rem; border-radius: 10px;">
+                    <div style="background: rgba(0, 170, 255, 0.08); border: 2px solid rgba(0, 170, 255, 0.3); padding: 1rem; border-radius: var(--radius-md);">
                         <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.7rem;">
                             <span style="font-size: 1.2rem;">🚗</span>
                             <h3 style="color: #00aaff; font-size: 0.9rem; margin: 0; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700;">Vehicle</h3>
                         </div>
                         <div style="color: var(--gray-200); font-size: 0.95rem; font-weight: 600; line-height: 1.4; margin-bottom: 0.5rem;">
-                            ${order.vehicle_info || 'N/A'}
+                            ${esc(order.vehicle_info || 'N/A')}
                         </div>
-                        <div style="background: var(--dark-700); padding: 0.6rem; border-radius: 6px; margin-bottom: 0.5rem;">
+                        <div style="background: var(--dark-700); padding: 0.6rem; border-radius: var(--radius-sm); margin-bottom: 0.5rem;">
                             <div style="color: var(--gray-500); font-size: 0.7rem; text-transform: uppercase; margin-bottom: 0.2rem;">ECU Reference</div>
-                            <div style="color: var(--gray-200); font-weight: 600;">${order.ecu_reference ? escapeHtml(order.ecu_reference) : 'Not provided'}</div>
+                            <div style="color: var(--gray-200); font-weight: 600;">${order.ecu_reference ? esc(order.ecu_reference) : 'Not provided'}</div>
                         </div>
                         <div style="font-size: 0.8rem; color: var(--gray-500); padding-top: 0.5rem; border-top: 1px solid rgba(0, 170, 255, 0.2); margin-top: 0.5rem;">
                             <div>📍 <strong style="color: var(--gray-400);">Info:</strong> ${order.vehicle_info ? 'Complete' : 'Incomplete'}</div>
@@ -555,34 +598,34 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
 
                     <!-- Service Section - Compact -->
-                    <div style="background: rgba(255, 170, 0, 0.08); border: 2px solid rgba(255, 170, 0, 0.3); padding: 1rem; border-radius: 10px;">
+                    <div style="background: rgba(255, 170, 0, 0.08); border: 2px solid rgba(255, 170, 0, 0.3); padding: 1rem; border-radius: var(--radius-md);">
                         <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.7rem;">
                             <span style="font-size: 1.2rem;">⚙️</span>
                             <h3 style="color: #ffa500; font-size: 0.9rem; margin: 0; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700;">Service</h3>
                         </div>
                         <div style="color: var(--gray-200); font-size: 0.95rem; font-weight: 600; margin-bottom: 0.5rem;">
-                            ${order.service} — ${SERVICE_PRICES[order.service] || 'On request'}
+                            ${esc(order.service)} — ${SERVICE_PRICES[order.service] || 'On request'}
                         </div>
                         <div style="color: var(--gray-500); font-size: 0.75rem; margin-bottom: 0.5rem;">Prices in EUR</div>
                         ${order.custom_service_description ? `
-                        <div style="background: rgba(255, 170, 0, 0.1); border-left: 3px solid #ffa500; padding: 0.6rem; border-radius: 4px; margin-top: 0.5rem;">
+                        <div style="background: rgba(255, 170, 0, 0.1); border-left: 3px solid #ffa500; padding: 0.6rem; border-radius: var(--radius-sm); margin-top: 0.5rem;">
                             <div style="color: var(--gold); font-size: 0.75rem; text-transform: uppercase; font-weight: 700; margin-bottom: 0.3rem;">📝 Details:</div>
                             <div style="color: var(--gray-300); font-size: 0.8rem; line-height: 1.4; max-height: 70px; overflow-y: auto;">
-                                ${order.custom_service_description}
+                                ${esc(order.custom_service_description)}
                             </div>
                         </div>
                         ` : '<div style="color: var(--gray-500); font-size: 0.8rem; font-style: italic;">No custom details</div>'}
                     </div>
 
                     <!-- Timeline Section -->
-                    <div style="background: rgba(156, 39, 176, 0.08); border: 2px solid rgba(156, 39, 176, 0.3); padding: 1rem; border-radius: 10px;">
+                    <div style="background: rgba(156, 39, 176, 0.08); border: 2px solid rgba(156, 39, 176, 0.3); padding: 1rem; border-radius: var(--radius-md);">
                         <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.7rem;">
                             <span style="font-size: 1.2rem;">⏱️</span>
                             <h3 style="color: #9c27b0; font-size: 0.9rem; margin: 0; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700;">Timeline</h3>
                         </div>
                         <div style="font-size: 0.8rem; color: var(--gray-300); line-height: 1.6;">
-                            <div>📅 <strong>Created:</strong> ${formattedDate}</div>
-                            <div>🕐 <strong>Time:</strong> ${formattedTime}</div>
+                            <div>📅 <strong>Created:</strong> ${esc(formattedDate)}</div>
+                            <div>🕐 <strong>Time:</strong> ${esc(formattedTime)}</div>
                             <div>⏳ <strong>Duration:</strong> ${Math.floor((Date.now() - createdDate) / 3600000)} hours</div>
                         </div>
                     </div>
@@ -591,49 +634,49 @@ document.addEventListener('DOMContentLoaded', () => {
                 <!-- Right Column -->
                 <div style="display: grid; gap: 1rem;">
                     <!-- Customer Section - Compact -->
-                    <div style="background: rgba(0, 255, 136, 0.08); border: 2px solid rgba(0, 255, 136, 0.3); padding: 1rem; border-radius: 10px;">
+                    <div style="background: rgba(0, 255, 136, 0.08); border: 2px solid rgba(0, 255, 136, 0.3); padding: 1rem; border-radius: var(--radius-md);">
                         <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.7rem;">
                             <span style="font-size: 1.2rem;">👤</span>
                             <h3 style="color: #00ff88; font-size: 0.9rem; margin: 0; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700;">Customer</h3>
                         </div>
                         <div style="display: grid; gap: 0.5rem; font-size: 0.8rem;">
-                            <div style="background: var(--dark-700); padding: 0.6rem; border-radius: 6px;">
+                            <div style="background: var(--dark-700); padding: 0.6rem; border-radius: var(--radius-sm);">
                                 <div style="color: var(--gray-500); font-size: 0.7rem; text-transform: uppercase; margin-bottom: 0.2rem;">👥 Name</div>
-                                <div style="color: var(--gray-200); font-weight: 600;">${order.customer_name || 'N/A'}</div>
+                                <div style="color: var(--gray-200); font-weight: 600;">${esc(order.customer_name || 'N/A')}</div>
                             </div>
-                            <div style="background: var(--dark-700); padding: 0.6rem; border-radius: 6px;">
+                            <div style="background: var(--dark-700); padding: 0.6rem; border-radius: var(--radius-sm);">
                                 <div style="color: var(--gray-500); font-size: 0.7rem; text-transform: uppercase; margin-bottom: 0.2rem;">✉️ Email</div>
-                                <div style="color: var(--gray-200); font-weight: 600; word-break: break-all; font-size: 0.75rem;">${order.customer_email || 'N/A'}</div>
+                                <div style="color: var(--gray-200); font-weight: 600; word-break: break-all; font-size: 0.75rem;">${esc(order.customer_email || 'N/A')}</div>
                             </div>
-                            <div style="background: var(--dark-700); padding: 0.6rem; border-radius: 6px;">
+                            <div style="background: var(--dark-700); padding: 0.6rem; border-radius: var(--radius-sm);">
                                 <div style="color: var(--gray-500); font-size: 0.7rem; text-transform: uppercase; margin-bottom: 0.2rem;">💬 WhatsApp</div>
-                                <div style="color: var(--gray-200); font-weight: 600;">${order.customer_phone || 'N/A'}</div>
+                                <div style="color: var(--gray-200); font-weight: 600;">${esc(order.customer_phone || 'N/A')}</div>
                             </div>
                         </div>
                     </div>
 
                     <!-- Files Section - Compact -->
-                    <div style="background: rgba(255, 215, 0, 0.08); border: 2px solid rgba(255, 215, 0, 0.3); padding: 1rem; border-radius: 10px;">
+                    <div style="background: rgba(255, 215, 0, 0.08); border: 2px solid rgba(255, 215, 0, 0.3); padding: 1rem; border-radius: var(--radius-md);">
                         <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.7rem;">
                             <span style="font-size: 1.2rem;">📁</span>
                             <h3 style="color: var(--gold); font-size: 0.9rem; margin: 0; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700;">Files</h3>
                         </div>
                         <div style="display: grid; gap: 0.5rem;">
-                            <div style="background: var(--dark-700); padding: 0.6rem; border-radius: 6px;">
+                            <div style="background: var(--dark-700); padding: 0.6rem; border-radius: var(--radius-sm);">
                                 <div style="color: var(--gray-500); font-size: 0.7rem; text-transform: uppercase; margin-bottom: 0.2rem;">📄 Original</div>
                                 <div style="color: var(--gray-300); font-size: 0.7rem; font-family: monospace; word-break: break-all;">
-                                    ${order.original_file_name}
+                                    ${esc(order.original_file_name)}
                                 </div>
                             </div>
                             ${order.modified_file_name ? `
-                            <div style="background: rgba(0, 255, 136, 0.1); border: 1px solid rgba(0, 255, 136, 0.3); padding: 0.6rem; border-radius: 6px;">
+                            <div style="background: rgba(0, 255, 136, 0.1); border: 1px solid rgba(0, 255, 136, 0.3); padding: 0.6rem; border-radius: var(--radius-sm);">
                                 <div style="color: #00ff88; font-size: 0.7rem; text-transform: uppercase; font-weight: 700; margin-bottom: 0.2rem;">✅ Modified</div>
                                 <div style="color: #00ff88; font-size: 0.7rem; font-family: monospace; word-break: break-all;">
-                                    ${order.modified_file_name}
+                                    ${esc(order.modified_file_name)}
                                 </div>
                             </div>
                             ` : `
-                            <div style="background: rgba(255, 215, 0, 0.1); border: 1px dashed rgba(255, 215, 0, 0.3); padding: 0.6rem; border-radius: 6px; text-align: center;">
+                            <div style="background: rgba(255, 215, 0, 0.1); border: 1px dashed rgba(255, 215, 0, 0.3); padding: 0.6rem; border-radius: var(--radius-sm); text-align: center;">
                                 <div style="color: var(--gray-500); font-size: 0.8rem; font-style: italic;">⏳ Awaiting modified file</div>
                             </div>
                             `}
@@ -641,15 +684,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
 
                     <!-- Stats Section -->
-                    <div style="background: rgba(76, 175, 80, 0.08); border: 2px solid rgba(76, 175, 80, 0.3); padding: 1rem; border-radius: 10px;">
+                    <div style="background: rgba(76, 175, 80, 0.08); border: 2px solid rgba(76, 175, 80, 0.3); padding: 1rem; border-radius: var(--radius-md);">
                         <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.7rem;">
                             <span style="font-size: 1.2rem;">📊</span>
                             <h3 style="color: #4caf50; font-size: 0.9rem; margin: 0; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700;">Status</h3>
                         </div>
                         <div style="font-size: 0.8rem; color: var(--gray-300); line-height: 1.6;">
-                            <div>🔄 <strong>Current:</strong> ${order.status.charAt(0).toUpperCase() + order.status.slice(1)}</div>
+                            <div>🔄 <strong>Current:</strong> ${esc(String(order.status).charAt(0).toUpperCase() + String(order.status).slice(1))}</div>
                             <div>📦 <strong>Files:</strong> ${order.modified_file_name ? '✅ Complete' : '⏳ Pending'}</div>
-                            <div>💾 <strong>Size:</strong> ${(Math.random() * 50 + 10).toFixed(2)} MB</div>
                         </div>
                     </div>
                 </div>
@@ -657,21 +699,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
             <!-- Action Buttons -->
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 0.8rem; margin-top: 1.5rem; padding-top: 1.5rem; border-top: 2px solid rgba(255, 215, 0, 0.1);">
-                <button class="btn btn-primary" onclick="downloadOriginal(${order.id}); document.getElementById('orderModal').classList.remove('active');" style="font-size: 0.85rem; padding: 0.6rem 0.8rem;">
+                <button class="btn btn-primary" onclick="downloadOriginal(${Number(orderId)}); document.getElementById('orderModal').classList.remove('active');" style="font-size: 0.85rem; padding: 0.6rem 0.8rem;">
                     📥 Download
                 </button>
                 ${order.status === 'pending' ? `
-                <button class="btn btn-secondary" onclick="updateStatus(${order.id}, 'processing'); document.getElementById('orderModal').classList.remove('active');" style="font-size: 0.85rem; padding: 0.6rem 0.8rem;">
+                <button class="btn btn-secondary" onclick="updateStatus(${Number(orderId)}, 'processing'); document.getElementById('orderModal').classList.remove('active');" style="font-size: 0.85rem; padding: 0.6rem 0.8rem;">
                     ⚙️ Process
                 </button>
                 ` : ''}
                 ${order.status === 'processing' ? `
-                <button class="btn btn-primary" onclick="document.getElementById('orderModal').classList.remove('active'); showUploadModal(${order.id});" style="font-size: 0.85rem; padding: 0.6rem 0.8rem;">
+                <button class="btn btn-primary" onclick="document.getElementById('orderModal').classList.remove('active'); showUploadModal(${Number(orderId)});" style="font-size: 0.85rem; padding: 0.6rem 0.8rem;">
                     📤 Upload
                 </button>
                 ` : ''}
                 ${order.modified_file_path ? `
-                <button class="btn btn-success" onclick="downloadModified(${order.id}); document.getElementById('orderModal').classList.remove('active');" style="font-size: 0.85rem; padding: 0.6rem 0.8rem;">
+                <button class="btn btn-success" onclick="downloadModified(${Number(orderId)}); document.getElementById('orderModal').classList.remove('active');" style="font-size: 0.85rem; padding: 0.6rem 0.8rem;">
                     ✅ Download
                 </button>
                 ` : ''}

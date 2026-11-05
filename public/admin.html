@@ -19,6 +19,7 @@
             <div class="nav-links">
                 <a href="/">Home</a>
                 <a href="/admin" class="active">Admin</a>
+                <a href="/admin/leads">Lead Research</a>
             </div>
         </div>
     </nav>
@@ -54,19 +55,19 @@
                 </div>
 
                 <div class="stats-grid">
-                    <div class="stat-card">
+                    <div class="stat-card" tabindex="0" role="button">
                         <div class="stat-value" id="totalOrders">0</div>
                         <div class="stat-label">Total Orders</div>
                     </div>
-                    <div class="stat-card">
+                    <div class="stat-card" tabindex="0" role="button">
                         <div class="stat-value" id="pendingOrders">0</div>
                         <div class="stat-label">Pending</div>
                     </div>
-                    <div class="stat-card">
+                    <div class="stat-card" tabindex="0" role="button">
                         <div class="stat-value" id="processingOrders">0</div>
                         <div class="stat-label">Processing</div>
                     </div>
-                    <div class="stat-card">
+                    <div class="stat-card" tabindex="0" role="button">
                         <div class="stat-value" id="completedOrders">0</div>
                         <div class="stat-label">Completed</div>
                     </div>
@@ -75,8 +76,9 @@
                 <div class="orders-container">
                     <div style="display: flex; gap: 1rem; align-items: center; margin-bottom: 2rem; flex-wrap: wrap;">
                         <h2 class="section-title" style="margin: 0;">Orders</h2>
-                        <input type="text" id="searchInput" aria-label="Search orders" placeholder="🔍 Search by name, email, vehicle..." 
-                               style="flex: 1; min-width: 200px; padding: 0.75rem 1rem; background: rgba(13, 13, 13, 0.9); border: 2px solid rgba(255, 215, 0, 0.3); border-radius: 8px; color: var(--gray-200); font-size: 0.9rem;"
+                        <label for="searchInput" class="visually-hidden">Search orders</label>
+                        <input type="text" id="searchInput" placeholder="🔍 Search by name, email, vehicle..." 
+                               style="flex: 1; min-width: 200px; min-height: 44px; padding: 0.75rem 1rem; background: var(--bg); border: 1px solid var(--border-color); border-radius: var(--radius-md); color: var(--gray-200); font-size: 0.9rem;"
                                oninput="searchOrders(this.value)">
                     </div>
                     <div id="ordersList" class="orders-list">
@@ -90,7 +92,7 @@
     <!-- Order Modal -->
     <div id="orderModal" class="modal">
         <div class="modal-content">
-            <span class="modal-close">&times;</span>
+            <button class="modal-close" aria-label="Close modal">&times;</button>
             <h2 id="modalTitle">Order Details</h2>
             <div id="modalBody"></div>
         </div>

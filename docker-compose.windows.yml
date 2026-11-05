@@ -1,6 +1,15 @@
-version: '3.8'
-
 services:
+  # One-shot init: lays out the persistent data directory on the named volume.
+  # Fixes INFRA-007 - a fresh clone previously bind-mounted .\database.sqlite,
+  # which Docker created as a directory when missing, breaking DB init.
+  init:
+    image: node:18-alpine
+    container_name: ecu-tuning-init
+    command: sh -c "mkdir -p /data/uploads/modified && touch /data/database.sqlite"
+    volumes:
+      - ecu-data:/data
+    restart: "no"
+
   api:
     build: .
     container_name: ecu-tuning-api
@@ -10,6 +19,7 @@ services:
     environment:
       - NODE_ENV=production
       - API_PORT=4000
+      - DATA_DIR=/data
       - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin123}
       - SMTP_HOST=${SMTP_HOST:-smtp.gmail.com}
       - SMTP_PORT=${SMTP_PORT:-587}
@@ -21,8 +31,10 @@ services:
       - TWILIO_WHATSAPP_NUMBER=${TWILIO_WHATSAPP_NUMBER:-whatsapp:+14155238886}
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-*}
     volumes:
-      - .\database.sqlite:/app/database.sqlite
-      - .\uploads:/app/uploads
+      - ecu-data:/data
+    depends_on:
+      init:
+        condition: service_completed_successfully
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:4000/"]
@@ -40,22 +52,36 @@ services:
     environment:
       - NODE_ENV=production
       - CLIENT_PORT=3000
-      - CLIENT_API_BASE_URL=${CLIENT_API_BASE_URL:-http://api:4000}
+      - CLIENT_API_BASE_URL=${CLIENT_API_BASE_URL:-http://localhost:${API_PORT:-4000}}
     depends_on:
       - api
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
   admin:
     build: .
     container_name: ecu-tuning-admin
     command: node admin-server.js
     ports:
-      - "${ADMIN_PORT:-3002}:3002"
+      - "${ADMIN_PORT:-3001}:3001"
     environment:
       - NODE_ENV=production
-      - ADMIN_PORT=3002
-      - ADMIN_API_BASE_URL=${ADMIN_API_BASE_URL:-http://api:4000}
+      - ADMIN_PORT=3001
+      - ADMIN_API_BASE_URL=${ADMIN_API_BASE_URL:-http://localhost:${API_PORT:-4000}}
     depends_on:
       - api
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3001/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
+volumes:
+  ecu-data:

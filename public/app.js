@@ -1,9 +1,34 @@
 // File upload form handling
 const API_BASE_URL = (window.API_BASE_URL || '').replace(/\/$/, '');
 
+// POST a FormData payload via XHR so upload progress can be reported.
+// Resolves with { ok, status, data } like fetch() would.
+function uploadWithProgress(url, formData, headers, onProgress) {
+    return new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', url);
+        Object.keys(headers || {}).forEach(key => xhr.setRequestHeader(key, headers[key]));
+        xhr.upload.addEventListener('progress', (e) => {
+            if (e.lengthComputable && typeof onProgress === 'function') {
+                onProgress(Math.min(100, Math.round((e.loaded / e.total) * 100)));
+            }
+        });
+        xhr.addEventListener('load', () => {
+            let data = {};
+            try { data = JSON.parse(xhr.responseText || '{}'); } catch (err) { /* non-JSON response */ }
+            resolve({ ok: xhr.status >= 200 && xhr.status < 300, status: xhr.status, data });
+        });
+        xhr.addEventListener('error', () => reject(new Error('Network error during upload')));
+        xhr.addEventListener('abort', () => reject(new Error('Upload aborted')));
+        xhr.send(formData);
+    });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     const form = document.getElementById('uploadForm');
     const fileInput = document.getElementById('ecuFile');
+    const fileUploadButton = document.getElementById('ecuFileButton');
+    const fileUploadText = fileUploadButton ? fileUploadButton.querySelector('.file-upload-text') : null;
     const fileInfo = document.getElementById('fileInfo');
     const messageDiv = document.getElementById('message');
     const submitBtn = document.getElementById('submitBtn');
@@ -12,6 +37,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const serviceSelect = document.getElementById('service');
     const customServiceGroup = document.getElementById('customServiceGroup');
     const customServiceDescription = document.getElementById('customServiceDescription');
+    const uploadProgress = document.getElementById('uploadProgress');
+    const uploadProgressBar = document.getElementById('uploadProgressBar');
 
     // Show/hide custom service description based on service selection
     serviceSelect.addEventListener('change', (e) => {
@@ -32,8 +59,20 @@ document.addEventListener('DOMContentLoaded', () => {
             const fileSize = (file.size / 1024 / 1024).toFixed(2);
             fileInfo.textContent = `Selected: ${file.name} (${fileSize} MB)`;
             fileInfo.classList.add('show');
+            if (fileUploadButton) {
+                fileUploadButton.classList.add('has-file');
+            }
+            if (fileUploadText) {
+                fileUploadText.textContent = file.name;
+            }
         } else {
             fileInfo.classList.remove('show');
+            if (fileUploadButton) {
+                fileUploadButton.classList.remove('has-file');
+            }
+            if (fileUploadText) {
+                fileUploadText.textContent = 'Choose ECU File';
+            }
         }
     });
 
@@ -62,29 +101,41 @@ document.addEventListener('DOMContentLoaded', () => {
             formData.set('customServiceDescription', customServiceDescription.value.trim());
         }
 
-        // Disable submit button
+        // Disable submit button and show progress state
         submitBtn.disabled = true;
         btnText.textContent = 'Uploading...';
         btnLoader.style.display = 'inline-block';
         messageDiv.classList.remove('show');
+        uploadProgress.classList.add('show');
+        uploadProgressBar.style.width = '0%';
+        uploadProgress.setAttribute('aria-valuenow', '0');
 
         try {
-            const response = await fetch(`${API_BASE_URL}/api/orders`, {
-                method: 'POST',
-                body: formData
-            });
+            const result = await uploadWithProgress(
+                `${API_BASE_URL}/api/orders`,
+                formData,
+                null,
+                (percent) => {
+                    uploadProgressBar.style.width = percent + '%';
+                    uploadProgress.setAttribute('aria-valuenow', String(percent));
+                }
+            );
 
-            const data = await response.json();
-
-            if (response.ok) {
+            if (result.ok) {
                 showMessage(
-                    `✅ Order submitted successfully! Order ID: ${data.orderId}. Your file is being processed.`,
+                    `✅ Order submitted successfully! Order ID: ${result.data.orderId}. Your file is being processed.`,
                     'success'
                 );
                 form.reset();
                 fileInfo.classList.remove('show');
+                if (fileUploadButton) {
+                    fileUploadButton.classList.remove('has-file');
+                }
+                if (fileUploadText) {
+                    fileUploadText.textContent = 'Choose ECU File';
+                }
             } else {
-                showMessage(`❌ Error: ${data.error || 'Failed to submit order'}`, 'error');
+                showMessage(`❌ Error: ${result.data.error || 'Failed to submit order'}`, 'error');
             }
         } catch (error) {
             console.error('Error:', error);
@@ -93,6 +144,7 @@ document.addEventListener('DOMContentLoaded', () => {
             submitBtn.disabled = false;
             btnText.textContent = 'Upload & Submit Order';
             btnLoader.style.display = 'none';
+            uploadProgress.classList.remove('show');
         }
     });
 
@@ -148,4 +200,3 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 })();
-

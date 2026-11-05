@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Worldwide ECU business lead research for lawful calibration, diagnostics and emissions repair.">
+    <title>Lead Intelligence — ECU Tuning Pro</title>
+    <link rel="preconnect" href="https://unpkg.com" crossorigin>
+    <link rel="preconnect" href="https://basemaps.cartocdn.com" crossorigin>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+    <link rel="stylesheet" href="research.css">
+</head>
+<body>
+    <a class="skip-link" href="#main">Skip to content</a>
+
+    <!-- Login -->
+    <section class="auth-shell" id="loginView">
+        <div class="auth-visual" aria-hidden="true">
+            <div class="auth-orbit">
+                <span class="orbit-ring ring-1"></span>
+                <span class="orbit-ring ring-2"></span>
+                <span class="orbit-ring ring-3"></span>
+                <span class="orbit-core">ECU</span>
+                <span class="orbit-dot dot-a"></span>
+                <span class="orbit-dot dot-b"></span>
+                <span class="orbit-dot dot-c"></span>
+            </div>
+            <div class="auth-visual-copy">
+                <span class="eyebrow">LEAD INTELLIGENCE</span>
+                <h1>Map the workshops<br>that already speak ECU.</h1>
+                <p>Public business data. Verified locations. Lawful calibration, diagnostics and emissions repair only.</p>
+            </div>
+        </div>
+        <div class="auth-card">
+            <div class="auth-brand">
+                <span class="brand-mark">ECU</span>
+                <div>
+                    <strong>ECU Tuning Pro</strong>
+                    <span>Business development workspace</span>
+                </div>
+            </div>
+            <div class="auth-copy">
+                <h2>Admin sign in</h2>
+                <p>Use the same admin password as the order panel.</p>
+            </div>
+            <form id="loginForm" class="auth-form">
+                <label for="adminPassword">Password</label>
+                <div class="password-wrap">
+                    <input type="password" id="adminPassword" name="password" placeholder="Enter admin password" autocomplete="current-password" required autofocus>
+                    <button type="button" class="password-toggle" id="passwordToggle" aria-label="Show password">Show</button>
+                </div>
+                <button type="submit" class="btn primary wide" id="loginBtn">Enter workspace</button>
+                <div id="loginMessage" class="form-message" role="alert"></div>
+            </form>
+            <div class="auth-foot">
+                <span class="status-dot"></span>
+                <span>Admin-only. Public business data. No automated outreach.</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- App -->
+    <div class="app-shell" id="appView" hidden>
+        <aside class="sidebar">
+            <div class="brand">
+                <span class="brand-mark">ECU</span>
+                <div class="brand-copy">
+                    <strong>ECU Tuning Pro</strong>
+                    <span>Lead Intelligence</span>
+                </div>
+            </div>
+
+            <nav class="side-nav" aria-label="Workspace">
+                <button type="button" class="nav-item active" data-view="overview">
+                    <span class="nav-icon" aria-hidden="true">◈</span>
+                    <span>Overview</span>
+                </button>
+                <button type="button" class="nav-item" data-view="leads">
+                    <span class="nav-icon" aria-hidden="true">▦</span>
+                    <span>Lead database</span>
+                    <span class="nav-badge" id="navLeadsCount">0</span>
+                </button>
+                <button type="button" class="nav-item" data-view="runs">
+                    <span class="nav-icon" aria-hidden="true">⟳</span>
+                    <span>Research runs</span>
+                    <span class="nav-badge quiet" id="navRunsCount">0</span>
+                </button>
+                <button type="button" class="nav-item" data-view="sources">
+                    <span class="nav-icon" aria-hidden="true">◎</span>
+                    <span>Sources &amp; compliance</span>
+                </button>
+            </nav>
+
+            <div class="sidebar-panel">
+                <div class="panel-label">Rollout focus</div>
+                <div id="focusList" class="focus-list">
+                    <div class="skeleton-line"></div>
+                    <div class="skeleton-line short"></div>
+                    <div class="skeleton-line"></div>
+                </div>
+            </div>
+
+            <div class="sidebar-foot">
+                <div class="session-chip">
+                    <span class="status-dot"></span>
+                    <div>
+                        <strong>Admin session</strong>
+                        <span>Public business data only</span>
+                    </div>
+                </div>
+                <button type="button" class="icon-btn" id="logoutBtn" title="Log out" aria-label="Log out">↪</button>
+            </div>
+        </aside>
+
+        <div class="main-shell">
+            <header class="topbar">
+                <div class="breadcrumb">
+                    <span>Business development</span>
+                    <span class="crumb-sep">/</span>
+                    <strong>Lead intelligence</strong>
+                </div>
+                <div class="topbar-actions">
+                    <label class="search-inline" for="globalSearch">
+                        <span aria-hidden="true">⌕</span>
+                        <input id="globalSearch" type="search" placeholder="Search leads, cities, domains…" autocomplete="off">
+                        <kbd>/</kbd>
+                    </label>
+                    <button type="button" class="btn ghost" id="exportBtn">Export CSV</button>
+                    <button type="button" class="btn primary" id="openResearchBtn">
+                        <span aria-hidden="true">＋</span> Run research
+                    </button>
+                </div>
+            </header>
+
+            <main id="main" class="main-content">
+                <!-- OVERVIEW -->
+                <section class="view" id="view-overview" data-view-panel="overview">
+                    <div class="hero">
+                        <div class="hero-copy">
+                            <span class="eyebrow">WORLDWIDE BUSINESS LEADS</span>
+                            <h1>Find the workshops<br>that already speak ECU.</h1>
+                            <p class="hero-lede">
+                                Research tuning, diagnostics and calibration businesses with verified locations,
+                                public contact channels and evidence. Built for a lawful file-service partnership —
+                                not emissions defeat.
+                            </p>
+                            <div class="hero-actions">
+                                <button type="button" class="btn primary" data-open-research>Start a research run</button>
+                                <button type="button" class="btn ghost" data-go-view="leads">Browse the database</button>
+                            </div>
+                            <div class="hero-note">
+                                <span class="pulse-dot"></span>
+                                <span>Lawful calibration, diagnostics and emissions-system repair only.</span>
+                            </div>
+                        </div>
+                        <div class="hero-visual" aria-hidden="true">
+                            <div class="globe-grid"></div>
+                            <div class="hero-orbit">
+                                <span class="orbit-ring ring-1"></span>
+                                <span class="orbit-ring ring-2"></span>
+                                <span class="orbit-ring ring-3"></span>
+                                <span class="orbit-core">ECU</span>
+                                <span class="orbit-dot dot-a"></span>
+                                <span class="orbit-dot dot-b"></span>
+                                <span class="orbit-dot dot-c"></span>
+                                <span class="orbit-dot dot-d"></span>
+                            </div>
+                            <div class="hero-tag tag-a">FR · DE · UK</div>
+                            <div class="hero-tag tag-b">Evidence-linked</div>
+                            <div class="hero-tag tag-c">EMEA → Worldwide</div>
+                        </div>
+                    </div>
+
+                    <div class="stat-grid" id="statGrid">
+                        <article class="stat-card">
+                            <div class="stat-top"><span>Discovered businesses</span><span class="stat-icon">◎</span></div>
+                            <div class="stat-value" id="statDiscovered">0</div>
+                            <div class="stat-foot" id="statDiscoveredFoot">No research run yet</div>
+                        </article>
+                        <article class="stat-card accent">
+                            <div class="stat-top"><span>Verified prospects</span><span class="stat-icon">✓</span></div>
+                            <div class="stat-value" id="statVerified">0</div>
+                            <div class="stat-foot" id="statVerifiedFoot">Location + official contact</div>
+                        </article>
+                        <article class="stat-card">
+                            <div class="stat-top"><span>High potential</span><span class="stat-icon">↗</span></div>
+                            <div class="stat-value" id="statHigh">0</div>
+                            <div class="stat-foot" id="statHighFoot">Remap / file-service signals</div>
+                        </article>
+                        <article class="stat-card">
+                            <div class="stat-top"><span>Countries covered</span><span class="stat-icon">⌖</span></div>
+                            <div class="stat-value" id="statCountries">0</div>
+                            <div class="stat-foot" id="statCountriesFoot">Map coordinates on file</div>
+                        </article>
+                    </div>
+
+                    <div class="panel map-panel">
+                        <div class="panel-head">
+                            <div>
+                                <span class="panel-kicker">GLOBAL COVERAGE</span>
+                                <h2>Where the prospects are</h2>
+                            </div>
+                            <div class="segmented" id="mapFilter" role="group" aria-label="Map filter">
+                                <button type="button" class="active" data-map-filter="all">All leads</button>
+                                <button type="button" data-map-filter="high">High potential</button>
+                                <button type="button" data-map-filter="verified">Verified</button>
+                            </div>
+                        </div>
+                        <div class="map-wrap">
+                            <div id="leadMap" aria-label="World map of researched business leads"></div>
+                            <div id="mapEmpty" class="map-empty" hidden>
+                                <strong>No mapped leads yet</strong>
+                                <span>Run a research pass to place verified businesses on the map.</span>
+                                <button type="button" class="btn primary sm" data-open-research>Run research</button>
+                            </div>
+                            <div class="map-legend" aria-hidden="true">
+                                <span><i class="dot high"></i> High</span>
+                                <span><i class="dot medium"></i> Medium</span>
+                                <span><i class="dot low"></i> Low</span>
+                                <span><i class="dot verified"></i> Verified</span>
+                            </div>
+                        </div>
+                        <div class="map-foot">
+                            <span id="mapFootText">Coordinates come from OpenStreetMap or official structured data.</span>
+                            <span class="map-attribution">© OpenStreetMap contributors · © CARTO</span>
+                        </div>
+                    </div>
+
+                    <div class="split-grid">
+                        <div class="panel">
+                            <div class="panel-head">
+                                <div>
+                                    <span class="panel-kicker">PRIORITY QUEUE</span>
+                                    <h2>Top opportunities</h2>
+                                </div>
+                                <button type="button" class="text-btn" data-go-view="leads">View all →</button>
+                            </div>
+                            <div id="topLeads" class="top-leads">
+                                <div class="skeleton-row"></div>
+                                <div class="skeleton-row"></div>
+                                <div class="skeleton-row"></div>
+                            </div>
+                        </div>
+                        <div class="panel">
+                            <div class="panel-head">
+                                <div>
+                                    <span class="panel-kicker">MARKET COVERAGE</span>
+                                    <h2>By country</h2>
+                                </div>
+                                <button type="button" class="text-btn" data-go-view="leads">Open list</button>
+                            </div>
+                            <div id="countryBars" class="country-bars">
+                                <div class="skeleton-line"></div>
+                                <div class="skeleton-line short"></div>
+                                <div class="skeleton-line"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="notice-strip">
+                        <span class="notice-icon">⚖</span>
+                        <div>
+                            <strong>Research, not spam.</strong>
+                            This workspace stores publicly published business contact data and evidence links.
+                            It does not send outreach, scrape private profiles or market emissions-control defeat.
+                        </div>
+                        <button type="button" class="text-btn" data-go-view="sources">Read the policy</button>
+                    </div>
+                </section>
+
+                <!-- LEADS -->
+                <section class="view" id="view-leads" data-view-panel="leads" hidden>
+                    <div class="section-head">
+                        <div>
+                            <span class="eyebrow">LEAD DATABASE</span>
+                            <h1>Prospects</h1>
+                            <p>Filter by market fit, verification state and public contact channels.</p>
+                        </div>
+                        <div class="section-actions">
+                            <button type="button" class="btn ghost" id="importBtn">Import CSV</button>
+                            <button type="button" class="btn primary" data-open-research>Run research</button>
+                        </div>
+                    </div>
+
+                    <div class="filter-bar">
+                        <label class="filter-search" for="leadSearch">
+                            <span aria-hidden="true">⌕</span>
+                            <input type="search" id="leadSearch" placeholder="Search name, city, email, domain…" autocomplete="off">
+                        </label>
+                        <label class="select-wrap">
+                            <span class="sr-only">Country</span>
+                            <select id="filterCountry"><option value="">All countries</option></select>
+                        </label>
+                        <label class="select-wrap">
+                            <span class="sr-only">Potential</span>
+                            <select id="filterPotential">
+                                <option value="">All potential</option>
+                                <option value="high">High</option>
+                                <option value="medium">Medium</option>
+                                <option value="low">Low</option>
+                            </select>
+                        </label>
+                        <label class="select-wrap">
+                            <span class="sr-only">Verification</span>
+                            <select id="filterStatus">
+                                <option value="">All states</option>
+                                <option value="verified">Verified</option>
+                                <option value="enriched">Enriched</option>
+                                <option value="discovered">Discovered</option>
+                                <option value="needs_review">Needs review</option>
+                            </select>
+                        </label>
+                        <label class="select-wrap">
+                            <span class="sr-only">Compliance</span>
+                            <select id="filterCompliance">
+                                <option value="">All compliance</option>
+                                <option value="clear">Clear</option>
+                                <option value="review">Needs review</option>
+                                <option value="blocked">Blocked</option>
+                            </select>
+                        </label>
+                        <button type="button" class="btn ghost sm" id="clearFilters">Clear</button>
+                    </div>
+
+                    <div class="table-meta">
+                        <span id="leadCountLabel">0 leads</span>
+                        <span id="leadLoadLabel"></span>
+                    </div>
+
+                    <div class="table-wrap">
+                        <table class="lead-table">
+                            <thead>
+                                <tr>
+                                    <th scope="col">Business</th>
+                                    <th scope="col">Location</th>
+                                    <th scope="col">Public contact</th>
+                                    <th scope="col">Fit</th>
+                                    <th scope="col">Verification</th>
+                                    <th scope="col">Evidence</th>
+                                </tr>
+                            </thead>
+                            <tbody id="leadsBody"></tbody>
+                        </table>
+                        <div class="empty-state" id="leadsEmpty" hidden>
+                            <div class="empty-icon">◎</div>
+                            <strong>No leads match these filters</strong>
+                            <span>Clear filters or run a new research pass.</span>
+                            <button type="button" class="btn primary sm" data-open-research>Run research</button>
+                        </div>
+                    </div>
+                    <div class="load-more-row">
+                        <button type="button" class="btn ghost" id="loadMoreBtn" hidden>Load more</button>
+                    </div>
+                </section>
+
+                <!-- RUNS -->
+                <section class="view" id="view-runs" data-view-panel="runs" hidden>
+                    <div class="section-head">
+                        <div>
+                            <span class="eyebrow">RESEARCH ENGINE</span>
+                            <h1>Research runs</h1>
+                            <p>Each run discovers, enriches and scores a bounded set of businesses. Public sources only.</p>
+                        </div>
+                        <button type="button" class="btn primary" data-open-research>New research run</button>
+                    </div>
+                    <div id="jobsList" class="jobs-list">
+                        <div class="empty-state">
+                            <div class="empty-icon">⟳</div>
+                            <strong>No research runs yet</strong>
+                            <span>Start with France and Germany, or enter a city you already know.</span>
+                            <button type="button" class="btn primary sm" data-open-research>Start research</button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- SOURCES -->
+                <section class="view" id="view-sources" data-view-panel="sources" hidden>
+                    <div class="section-head">
+                        <div>
+                            <span class="eyebrow">METHOD &amp; COMPLIANCE</span>
+                            <h1>Sources &amp; rules</h1>
+                            <p>How the agent finds businesses, what it stores, and where it draws the line.</p>
+                        </div>
+                    </div>
+
+                    <div class="source-grid">
+                        <article class="source-card">
+                            <div class="source-icon">⌖</div>
+                            <h2>OpenStreetMap</h2>
+                            <p>Business names, categories and coordinates from the public OSM database via Overpass and Nominatim. Coordinates are evidence-linked to the OSM object.</p>
+                            <span class="source-tag">ODbL · public</span>
+                        </article>
+                        <article class="source-card">
+                            <div class="source-icon">◇</div>
+                            <h2>Official websites</h2>
+                            <p>Public contact pages are fetched only to confirm the business website, contact channels, addresses and service specialisms. Robots.txt is respected; response size and time are capped.</p>
+                            <span class="source-tag">Public pages · evidence URL</span>
+                        </article>
+                        <article class="source-card">
+                            <div class="source-icon">↥</div>
+                            <h2>Manual imports</h2>
+                            <p>CSV or JSON records can be imported and deduplicated against the database. Every row keeps its source and can be re-verified later.</p>
+                            <span class="source-tag">Your data · auditable</span>
+                        </article>
+                    </div>
+
+                    <div class="policy-grid">
+                        <div class="policy-card good">
+                            <span class="panel-kicker">TARGET SCOPE</span>
+                            <h2>Lawful work only</h2>
+                            <ul>
+                                <li>ECU calibration, remapping and file-service partnerships.</li>
+                                <li>Diagnostics, fault-finding and electronic repair.</li>
+                                <li>Lawful emissions-system repair and maintenance.</li>
+                                <li>Performance work that remains road-legal in the target market.</li>
+                            </ul>
+                        </div>
+                        <div class="policy-card warn">
+                            <span class="panel-kicker">OUT OF SCOPE</span>
+                            <h2>No defeat marketing</h2>
+                            <ul>
+                                <li>DPF, EGR, SCR or AdBlue delete / removal services.</li>
+                                <li>DTC suppression, speed-limiter removal or defeat-device claims.</li>
+                                <li>Any modification that violates applicable road-emissions rules.</li>
+                                <li>Outreach to businesses whose public offer is built on those services.</li>
+                            </ul>
+                        </div>
+                        <div class="policy-card neutral">
+                            <span class="panel-kicker">DATA POLICY</span>
+                            <h2>Business data, not people</h2>
+                            <ul>
+                                <li>Publicly published business contact channels only.</li>
+                                <li>No private individuals, login-protected pages or social scraping.</li>
+                                <li>Opt-out and do-not-contact states are stored and respected.</li>
+                                <li>No automated sending. Export is for a human-reviewed CRM.</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="panel rollout-panel">
+                        <div class="panel-head">
+                            <div>
+                                <span class="panel-kicker">ROLLOUT</span>
+                                <h2>Priority markets</h2>
+                            </div>
+                        </div>
+                        <div id="rolloutList" class="rollout-list"></div>
+                    </div>
+
+                    <div class="notice-strip">
+                        <span class="notice-icon">⚖</span>
+                        <div>
+                            <strong>Compliance is a review flag, not legal advice.</strong>
+                            A lead whose public website advertises emissions-delete work is marked for review and
+                            excluded from the export until an admin decides. Verify local rules before any outreach.
+                        </div>
+                    </div>
+                </section>
+            </main>
+        </div>
+    </div>
+
+    <!-- Lead detail drawer -->
+    <div class="drawer-backdrop" id="drawerBackdrop" hidden></div>
+    <aside class="drawer" id="leadDrawer" aria-hidden="true" aria-label="Lead details">
+        <div class="drawer-head">
+            <div>
+                <span class="panel-kicker" id="drawerKicker">LEAD</span>
+                <h2 id="drawerName">Lead</h2>
+            </div>
+            <button type="button" class="icon-btn" id="drawerClose" aria-label="Close lead details">×</button>
+        </div>
+        <div class="drawer-body" id="drawerBody"></div>
+    </aside>
+
+    <!-- Research modal -->
+    <div class="modal-backdrop" id="researchModal" hidden>
+        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="researchTitle">
+            <div class="modal-head">
+                <div>
+                    <span class="panel-kicker">NEW RUN</span>
+                    <h2 id="researchTitle">Research businesses</h2>
+                </div>
+                <button type="button" class="icon-btn" id="researchClose" aria-label="Close research dialog">×</button>
+            </div>
+            <form id="researchForm" class="research-form">
+                <div class="form-block">
+                    <div class="form-label-row">
+                        <span class="form-label">Priority countries</span>
+                        <button type="button" class="text-btn" id="selectPriorityBtn">Select priority 1–3</button>
+                    </div>
+                    <div class="country-checks" id="countryChecks">
+                        <div class="skeleton-line"></div>
+                        <div class="skeleton-line short"></div>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <label class="field">
+                        <span>Cities <em>optional</em></span>
+                        <input type="text" id="researchCities" placeholder="e.g. Lyon, Berlin, London" autocomplete="off">
+                        <small>Leave blank to use each selected country’s priority cities.</small>
+                    </label>
+                    <label class="field">
+                        <span>Candidate limit</span>
+                        <select id="researchLimit">
+                            <option value="25">25</option>
+                            <option value="50" selected>50</option>
+                            <option value="100">100</option>
+                            <option value="250">250</option>
+                        </select>
+                        <small>Bounded per run. You can run more later.</small>
+                    </label>
+                </div>
+                <div class="form-row">
+                    <label class="field">
+                        <span>Discovery source</span>
+                        <select id="researchSource">
+                            <option value="auto" selected>Auto (Overpass → Nominatim)</option>
+                            <option value="overpass">OpenStreetMap / Overpass</option>
+                            <option value="nominatim">OpenStreetMap / Nominatim</option>
+                        </select>
+                    </label>
+                    <div class="field toggle-field">
+                        <label class="toggle-row">
+                            <input type="checkbox" id="researchEnrich" checked>
+                            <span class="toggle"></span>
+                            <span>Enrich from official websites</span>
+                        </label>
+                        <label class="toggle-row">
+                            <input type="checkbox" id="researchGeneral">
+                            <span class="toggle"></span>
+                            <span>Include general repair garages</span>
+                        </label>
+                    </div>
+                </div>
+                <div class="form-note">
+                    <strong>What happens:</strong> the agent queries public map data, fetches official business
+                    websites where available, extracts public contact channels and scores fit. It keeps evidence
+                    links and flags emissions-delete claims for review. It never sends outreach.
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn ghost" id="researchCancel">Cancel</button>
+                    <button type="submit" class="btn primary" id="researchSubmit">Start research</button>
+                </div>
+                <div class="form-message" id="researchMessage" role="alert"></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Import modal -->
+    <div class="modal-backdrop" id="importModal" hidden>
+        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="importTitle">
+            <div class="modal-head">
+                <div>
+                    <span class="panel-kicker">IMPORT</span>
+                    <h2 id="importTitle">Import business leads</h2>
+                </div>
+                <button type="button" class="icon-btn" id="importClose" aria-label="Close import dialog">×</button>
+            </div>
+            <form id="importForm" class="research-form">
+                <div class="form-note">
+                    CSV headers: <code>name, category, address, city, country_code, website, email, phone, whatsapp, latitude, longitude, notes</code>.
+                    Rows are deduplicated by domain, phone or name + city.
+                </div>
+                <label class="field">
+                    <span>CSV file</span>
+                    <input type="file" id="importFile" accept=".csv,text/csv">
+                </label>
+                <div class="modal-actions">
+                    <button type="button" class="btn ghost" id="importCancel">Cancel</button>
+                    <button type="submit" class="btn primary" id="importSubmit">Import</button>
+                </div>
+                <div class="form-message" id="importMessage" role="alert"></div>
+            </form>
+        </div>
+    </div>
+
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin="" defer></script>
+    <script src="config.js"></script>
+    <script src="research.js" defer></script>
+</body>
+</html>

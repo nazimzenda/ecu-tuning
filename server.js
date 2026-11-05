@@ -2,6 +2,7 @@ const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs-extra');
+const crypto = require('crypto');
 const cors = require('cors');
 const compression = require('compression');
 const { v4: uuidv4 } = require('uuid');
@@ -9,34 +10,48 @@ const nodemailer = require('nodemailer');
 const twilio = require('twilio');
 const { Resend } = require('resend');
 const db = require('./db');
+const leadStore = require('./leads/store');
+const { createLeadsRouter } = require('./leads/routes');
 
 const app = express();
 
 // Enable gzip compression for all responses
 app.use(compression());
 
+// Trust X-Forwarded-For only from local proxies (nginx), so rate limiting sees real client IPs
+app.set('trust proxy', 'loopback');
+
 // Use API_PORT (4000) - DO NOT use PORT env var as that's for nginx (8080) on Railway
 const PORT = process.env.API_PORT || 4000;
 
 // CORS configuration
+// ALLOWED_ORIGINS set -> only those origins may make credentialed requests ('*' keeps any origin).
+// ALLOWED_ORIGINS unset -> CORS disabled entirely (same-origin only; never reflect a wildcard
+// with credentials). Requests without an Origin header (curl, server-to-server) are unaffected.
 const allowedOrigins = process.env.ALLOWED_ORIGINS
-  ? process.env.ALLOWED_ORIGINS.split(',').map(origin => origin.trim())
-  : ['*'];
+  ? process.env.ALLOWED_ORIGINS.split(',').map(origin => origin.trim()).filter(Boolean)
+  : null;
 
-app.use(cors({
-  origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
-      return callback(null, true);
-    }
-    console.warn(`🚫 Blocked CORS request from origin: ${origin}`);
-    return callback(new Error('Not allowed by CORS'));
-  },
+const corsOptions = {
+  origin: allowedOrigins
+    ? (origin, callback) => {
+        if (!origin || allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
+          return callback(null, true);
+        }
+        console.warn(`🚫 Blocked CORS request from origin: ${origin}`);
+        return callback(new Error('Not allowed by CORS'));
+      }
+    : false,
   credentials: true
-}));
-app.options('*', cors());
+};
+
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
 
 // Middleware
-app.use(express.json());
+// 2 MB accommodates lead-research CSV/JSON imports (the normal form payloads
+// are tiny, so this does not change the order-upload limits).
+app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ extended: true }));
 
 // Data directory - use DATA_DIR env var for Railway Volume, otherwise use local directory
@@ -87,8 +102,10 @@ const storage = multer.diskStorage({
     cb(null, uploadsDir);
   },
   filename: (req, file, cb) => {
-    const uniqueName = `${uuidv4()}-${file.originalname}`;
-    cb(null, uniqueName);
+    // Never write the original filename to disk (path traversal / injection risk).
+    // Keep only the validated extension; the original name is preserved in the DB.
+    const ext = path.extname(file.originalname).toLowerCase();
+    cb(null, `${uuidv4()}${ext}`);
   }
 });
 
@@ -101,7 +118,9 @@ const upload = multer({
     if (allowedExtensions.includes(ext)) {
       cb(null, true);
     } else {
-      cb(new Error('Invalid file type. Allowed: .bin, .hex, .ori, .winols, .dam'));
+      const err = new Error('Invalid file type. Allowed: .bin, .hex, .ori, .winols, .dam');
+      err.status = 400;
+      cb(err);
     }
   }
 });
@@ -187,8 +206,30 @@ const twilioWhatsAppNumber = process.env.TWILIO_WHATSAPP_NUMBER || 'whatsapp:+14
 // Simple session storage (in production, use proper session management)
 const adminSessions = new Set();
 
+// Simple in-memory rate limiter for admin login (brute-force protection)
+const loginAttempts = new Map(); // ip -> { count, firstAttemptAt }
+const LOGIN_MAX_ATTEMPTS = 10;
+const LOGIN_WINDOW_MS = 5 * 60 * 1000;
+
 // Escape HTML special characters for safe email rendering
 const escapeHtml = (s) => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+// Trim, strip control characters, and cap the length of user-supplied text fields
+const sanitizeText = (value, maxLength) => {
+  if (typeof value !== 'string') return value;
+  return value.replace(/[\x00-\x1F\x7F]/g, '').trim().slice(0, maxLength);
+};
+
+// Constant-time password comparison (with an equal-length guard)
+function safePasswordCompare(input, expected) {
+  const a = Buffer.from(String(input || ''));
+  const b = Buffer.from(String(expected || ''));
+  if (a.length !== b.length) {
+    crypto.timingSafeEqual(a, a); // burn constant time on length mismatch
+    return false;
+  }
+  return crypto.timingSafeEqual(a, b);
+}
 
 // Admin authentication middleware
 function requireAdmin(req, res, next) {
@@ -215,13 +256,41 @@ app.get('/', (req, res) => {
 
 // Admin login API
 app.post('/api/admin/login', (req, res) => {
-  const { password } = req.body;
-  
-  if (password === ADMIN_PASSWORD) {
+  const ip = req.ip || 'unknown';
+  const now = Date.now();
+
+  // Drop expired rate-limit windows, and cap memory if the map grows too large
+  const existing = loginAttempts.get(ip);
+  if (existing && now - existing.firstAttemptAt > LOGIN_WINDOW_MS) {
+    loginAttempts.delete(ip);
+  }
+  if (loginAttempts.size > 10000) {
+    for (const [key, attempt] of loginAttempts) {
+      if (now - attempt.firstAttemptAt > LOGIN_WINDOW_MS) {
+        loginAttempts.delete(key);
+      }
+    }
+  }
+
+  const attempts = loginAttempts.get(ip);
+  if (attempts && attempts.count >= LOGIN_MAX_ATTEMPTS) {
+    const retryAfter = Math.ceil((LOGIN_WINDOW_MS - (now - attempts.firstAttemptAt)) / 1000);
+    res.set('Retry-After', String(retryAfter));
+    return res.status(429).json({ error: 'Too many login attempts. Please try again later.' });
+  }
+
+  const { password } = req.body || {};
+
+  if (safePasswordCompare(password, ADMIN_PASSWORD)) {
+    loginAttempts.delete(ip);
     const sessionId = uuidv4();
     adminSessions.add(sessionId);
     res.json({ success: true, sessionId });
   } else {
+    loginAttempts.set(ip, {
+      count: (attempts ? attempts.count : 0) + 1,
+      firstAttemptAt: attempts ? attempts.firstAttemptAt : now
+    });
     res.status(401).json({ error: 'Invalid password' });
   }
 });
@@ -244,7 +313,14 @@ app.post('/api/orders', upload.single('ecuFile'), async (req, res) => {
 
     const { service, vehicleInfo, ecuReference, customerName, customerEmail, customerPhone, customServiceDescription } = req.body;
 
-    if (!service || !vehicleInfo) {
+    // Input hygiene: trim, strip control characters, and cap field lengths
+    const cleanVehicleInfo = sanitizeText(vehicleInfo, 500);
+    const cleanCustomerName = sanitizeText(customerName, 200);
+    const cleanCustomerEmail = sanitizeText(customerEmail, 200);
+    const cleanCustomerPhone = sanitizeText(customerPhone, 50);
+    const cleanCustomServiceDescription = sanitizeText(customServiceDescription, 1000);
+
+    if (!service || !cleanVehicleInfo) {
       return res.status(400).json({ error: 'Service and vehicle info are required' });
     }
 
@@ -253,7 +329,7 @@ app.post('/api/orders', upload.single('ecuFile'), async (req, res) => {
     }
 
     // Validate custom service description if Autres is selected
-    if (service === 'Autres' && !customServiceDescription) {
+    if (service === 'Autres' && !cleanCustomServiceDescription) {
       return res.status(400).json({ error: 'Autres service description is required for custom modifications' });
     }
 
@@ -281,24 +357,24 @@ app.post('/api/orders', upload.single('ecuFile'), async (req, res) => {
       filePath: filePathToStore,
       fileDownloadURL: fileDownloadURL,
       service: service,
-      customServiceDescription: customServiceDescription || null,
-      vehicleInfo: vehicleInfo,
+      customServiceDescription: cleanCustomServiceDescription || null,
+      vehicleInfo: cleanVehicleInfo,
       ecuReference: (ecuReference || '').trim().slice(0, 100) || null,
-      customerName: customerName || 'Anonymous',
-      customerEmail: customerEmail || '',
-      customerPhone: customerPhone || null,
+      customerName: cleanCustomerName || 'Anonymous',
+      customerEmail: cleanCustomerEmail || '',
+      customerPhone: cleanCustomerPhone || null,
       status: 'pending'
     });
 
     // Send admin notification (fire-and-forget, don't block response)
     sendAdminNotification({
       id: order.id,
-      customer_name: customerName || 'Anonymous',
-      customer_email: customerEmail || '',
-      customer_phone: customerPhone || null,
-      vehicle_info: vehicleInfo,
+      customer_name: cleanCustomerName || 'Anonymous',
+      customer_email: cleanCustomerEmail || '',
+      customer_phone: cleanCustomerPhone || null,
+      vehicle_info: cleanVehicleInfo,
       service: service,
-      custom_service_description: customServiceDescription || null,
+      custom_service_description: cleanCustomServiceDescription || null,
       original_file_name: req.file.originalname
     }).catch(err => console.error('Admin notification error:', err.message));
 
@@ -491,6 +567,26 @@ app.delete('/api/orders/:id', requireAdmin, async (req, res) => {
     console.error('Error deleting order:', error);
     res.status(500).json({ error: 'Failed to delete order' });
   }
+});
+
+// Lead research / business-development workspace (admin only)
+app.use('/api/leads', createLeadsRouter({ requireAdmin }));
+
+// 404 fallback for unknown routes (JSON, matching API style)
+app.use((req, res) => {
+  res.status(404).json({ error: 'Not found' });
+});
+
+// Central error handler: multer/fileFilter errors -> 400, everything else -> 500 without leaking details
+app.use((err, req, res, next) => {
+  if (res.headersSent) {
+    return next(err);
+  }
+  if (err instanceof multer.MulterError || err.status === 400) {
+    return res.status(400).json({ error: err.message });
+  }
+  console.error('Unhandled server error:', err && err.stack ? err.stack : err);
+  res.status(500).json({ error: 'Internal server error' });
 });
 
 // Function to send file ready notifications
@@ -762,9 +858,10 @@ async function sendWhatsAppNotification(order) {
 // Start server
 async function startServer() {
   try {
-    // Initialize database first
+    // Initialize databases first
     await db.init();
-    
+    await leadStore.init();
+
     app.listen(PORT, () => {
       const isCloud = process.env.RAILWAY_ENVIRONMENT || process.env.RENDER;
       const url = isCloud ? process.env.RAILWAY_PUBLIC_DOMAIN || process.env.RENDER_EXTERNAL_URL : `http://localhost:${PORT}`;
