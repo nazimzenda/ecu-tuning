@@ -1399,11 +1399,37 @@
         }
     }
 
-    function exportCsv() {
+    async function exportCsv() {
         if (!state.session) return;
         const query = currentFilterQuery();
-        const suffix = query ? `?${query}&session=${encodeURIComponent(state.session)}` : `?session=${encodeURIComponent(state.session)}`;
-        window.open(`${API_BASE_URL}/api/leads/export${suffix}`, '_blank', 'noopener');
+        const suffix = query ? `?${query}` : '';
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/leads/export${suffix}`, {
+                headers: { 'x-admin-session': state.session }
+            });
+
+            if (response.status === 401) {
+                state.session = null;
+                localStorage.removeItem('adminSessionId');
+                showLogin('Your admin session expired. Sign in again.');
+                return;
+            }
+            if (!response.ok) throw new Error('Export failed');
+
+            const blob = await response.blob();
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `ecu-business-leads-${new Date().toISOString().slice(0, 10)}.csv`;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+        } catch (error) {
+            console.error('Export error:', error);
+            toast('Export failed. Please try again.');
+        }
     }
 
     /* ---------- event wiring ---------- */

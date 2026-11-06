@@ -1,3 +1,5 @@
+require('./load-env');
+
 const express = require('express');
 const multer = require('multer');
 const path = require('path');
@@ -5,18 +7,25 @@ const fs = require('fs-extra');
 const crypto = require('crypto');
 const cors = require('cors');
 const compression = require('compression');
-const { v4: uuidv4 } = require('uuid');
+const rateLimit = require('express-rate-limit');
 const nodemailer = require('nodemailer');
 const twilio = require('twilio');
 const { Resend } = require('resend');
 const db = require('./db');
 const leadStore = require('./leads/store');
 const { createLeadsRouter } = require('./leads/routes');
+const securityHeaders = require('./security');
 
 const app = express();
 
+// Do not advertise the framework version
+app.disable('x-powered-by');
+
 // Enable gzip compression for all responses
 app.use(compression());
+
+// Baseline security headers (HSTS only in production)
+app.use(securityHeaders);
 
 // Trust X-Forwarded-For only from local proxies (nginx), so rate limiting sees real client IPs
 app.set('trust proxy', 'loopback');
@@ -25,28 +34,56 @@ app.set('trust proxy', 'loopback');
 const PORT = process.env.API_PORT || 4000;
 
 // CORS configuration
-// ALLOWED_ORIGINS set -> only those origins may make credentialed requests ('*' keeps any origin).
-// ALLOWED_ORIGINS unset -> CORS disabled entirely (same-origin only; never reflect a wildcard
-// with credentials). Requests without an Origin header (curl, server-to-server) are unaffected.
+// ALLOWED_ORIGINS set -> only those origins may make requests ('*' reflects any origin).
+// ALLOWED_ORIGINS unset -> development allows the local client/admin origins; production
+// stays same-origin only (never reflect an arbitrary Origin without an explicit allowlist).
+// Requests without an Origin header (curl, server-to-server) are unaffected.
+const isProduction = process.env.NODE_ENV === 'production';
 const allowedOrigins = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',').map(origin => origin.trim()).filter(Boolean)
   : null;
 
+// In development, any localhost/loopback port is a valid UI origin. This
+// covers the standard 3000/3001 ports as well as custom ports used by tests.
+const isLocalOrigin = (origin) => /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(origin);
+
+const isOriginAllowed = (origin) => {
+  if (!origin) return true;
+  if (allowedOrigins) {
+    return allowedOrigins.includes('*') || allowedOrigins.includes(origin);
+  }
+  return !isProduction && isLocalOrigin(origin);
+};
+
+const corsOrigin = (allowedOrigins || !isProduction)
+  ? (origin, callback) => {
+      if (isOriginAllowed(origin)) return callback(null, true);
+
+      console.warn(`🚫 Blocked CORS request from origin: ${origin}`);
+      const error = new Error('Origin not allowed by CORS policy');
+      error.status = 403;
+      return callback(error);
+    }
+  : false;
+
 const corsOptions = {
-  origin: allowedOrigins
-    ? (origin, callback) => {
-        if (!origin || allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
-          return callback(null, true);
-        }
-        console.warn(`🚫 Blocked CORS request from origin: ${origin}`);
-        return callback(new Error('Not allowed by CORS'));
-      }
-    : false,
+  origin: corsOrigin,
   credentials: true
 };
 
 app.use(cors(corsOptions));
 app.options('*', cors(corsOptions));
+
+// Limit public order submissions per IP. Admin login has its own stricter
+// brute-force limiter below.
+const orderSubmissionLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 30,
+  standardHeaders: 'draft-8',
+  legacyHeaders: false,
+  message: { error: 'Too many order submissions from this IP. Please try again later.' },
+  skip: () => process.env.NODE_ENV === 'test'
+});
 
 // Middleware
 // 2 MB accommodates lead-research CSV/JSON imports (the normal form payloads
@@ -76,6 +113,8 @@ fs.ensureDirSync(modifiedDir);
 
 // Firebase adapter helpers (optional) - only if Firebase is properly configured
 let firebaseUploadFn = null;
+let firebaseDownloadFn = null;
+let firebaseDeleteFn = null;
 const useFirebaseEnv = process.env.USE_FIREBASE === 'true' || process.env.USE_FIREBASE === '1';
 const hasFirebaseCredentials = !!(process.env.GOOGLE_SERVICE_ACCOUNT_JSON && process.env.FIREBASE_STORAGE_BUCKET);
 
@@ -84,6 +123,8 @@ if (useFirebaseEnv && hasFirebaseCredentials) {
     const firestoreAdapter = require('./db/firestore-adapter');
     if (firestoreAdapter && firestoreAdapter.uploadLocalFileToStorage) {
       firebaseUploadFn = firestoreAdapter.uploadLocalFileToStorage;
+      firebaseDownloadFn = firestoreAdapter.downloadFileFromStorage || null;
+      firebaseDeleteFn = firestoreAdapter.deleteFileFromStorage || null;
       console.log('☁️ Firebase Storage: ✅ Enabled');
     }
   } catch (e) {
@@ -105,7 +146,7 @@ const storage = multer.diskStorage({
     // Never write the original filename to disk (path traversal / injection risk).
     // Keep only the validated extension; the original name is preserved in the DB.
     const ext = path.extname(file.originalname).toLowerCase();
-    cb(null, `${uuidv4()}${ext}`);
+    cb(null, `${crypto.randomUUID()}${ext}`);
   }
 });
 
@@ -125,8 +166,13 @@ const upload = multer({
   }
 });
 
-// Admin password (set via environment variable or use default)
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123'; // CHANGE THIS IN PRODUCTION!
+// Admin password (set via environment variable or use the development default)
+const adminPasswordFromEnv = process.env.ADMIN_PASSWORD || '';
+const ADMIN_PASSWORD = adminPasswordFromEnv || 'admin123';
+if (!adminPasswordFromEnv) {
+  console.warn('⚠️ ADMIN_PASSWORD is not set — using the insecure development default "admin123".');
+}
+const ORDER_STATUSES = ['pending', 'processing', 'completed', 'cancelled'];
 
 // Admin email for notifications (receives alerts for new orders)
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || '';
@@ -179,7 +225,7 @@ if (!resend && emailUser && emailPass) {
     port: smtpPort,
     secure: smtpPort === 465,
     auth: { user: emailUser, pass: emailPass },
-    tls: { rejectUnauthorized: false }
+    tls: { rejectUnauthorized: true }
   });
 }
 
@@ -203,8 +249,27 @@ const twilioClient = process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_T
   : null;
 const twilioWhatsAppNumber = process.env.TWILIO_WHATSAPP_NUMBER || 'whatsapp:+14155238886'; // Twilio sandbox number
 
-// Simple session storage (in production, use proper session management)
-const adminSessions = new Set();
+// In-memory admin sessions with a sliding expiry. Fine for a single API
+// process; use a shared store if the API is ever scaled horizontally.
+const ADMIN_SESSION_TTL_MS = Math.max(
+  60 * 1000,
+  Number(process.env.ADMIN_SESSION_TTL_MS) || 12 * 60 * 60 * 1000
+);
+const adminSessions = new Map(); // sessionId -> expiresAt (ms)
+
+function createAdminSession() {
+  const sessionId = crypto.randomUUID();
+  adminSessions.set(sessionId, Date.now() + ADMIN_SESSION_TTL_MS);
+  return sessionId;
+}
+
+const sessionCleanupTimer = setInterval(() => {
+  const now = Date.now();
+  for (const [sessionId, expiresAt] of adminSessions) {
+    if (expiresAt <= now) adminSessions.delete(sessionId);
+  }
+}, 15 * 60 * 1000);
+if (typeof sessionCleanupTimer.unref === 'function') sessionCleanupTimer.unref();
 
 // Simple in-memory rate limiter for admin login (brute-force protection)
 const loginAttempts = new Map(); // ip -> { count, firstAttemptAt }
@@ -212,13 +277,29 @@ const LOGIN_MAX_ATTEMPTS = 10;
 const LOGIN_WINDOW_MS = 5 * 60 * 1000;
 
 // Escape HTML special characters for safe email rendering
-const escapeHtml = (s) => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const escapeHtml = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+// Strip CR/LF so user input cannot inject extra email headers.
+const sanitizeHeader = (s, max = 200) => String(s ?? '').replace(/[\r\n]+/g, ' ').trim().slice(0, max);
 
 // Trim, strip control characters, and cap the length of user-supplied text fields
 const sanitizeText = (value, maxLength) => {
   if (typeof value !== 'string') return value;
   return value.replace(/[\x00-\x1F\x7F]/g, '').trim().slice(0, maxLength);
 };
+
+// Use only the base name and remove characters that could break the
+// Content-Disposition header.
+const safeDownloadName = (name, fallback = 'ecu-file.bin') => {
+  const base = path.basename(String(name || ''));
+  const cleaned = base.replace(/[\r\n"\\]/g, '_').trim();
+  return cleaned || fallback;
+};
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const isValidEmail = (value) => typeof value === 'string'
+  && value.length <= 254
+  && EMAIL_RE.test(value);
 
 // Constant-time password comparison (with an equal-length guard)
 function safePasswordCompare(input, expected) {
@@ -231,14 +312,18 @@ function safePasswordCompare(input, expected) {
   return crypto.timingSafeEqual(a, b);
 }
 
-// Admin authentication middleware
+// Admin authentication middleware (accepts header or ?session= for downloads)
 function requireAdmin(req, res, next) {
   const sessionId = req.headers['x-admin-session'] || req.query.session;
-  
-  if (adminSessions.has(sessionId)) {
+  const expiresAt = sessionId ? adminSessions.get(sessionId) : undefined;
+
+  if (expiresAt && expiresAt > Date.now()) {
+    // Sliding expiry: active admins stay logged in.
+    adminSessions.set(sessionId, Date.now() + ADMIN_SESSION_TTL_MS);
     return next();
   }
-  
+
+  if (sessionId && expiresAt) adminSessions.delete(sessionId);
   res.status(401).json({ error: 'Unauthorized. Please login first.' });
 }
 
@@ -249,7 +334,7 @@ app.get('/', (req, res) => {
   res.json({
     status: 'ok',
     service: 'ECU Tuning API',
-    version: '1.0.0',
+    version: require('./package.json').version,
     docs: 'See README for client/admin hosts.'
   });
 });
@@ -283,8 +368,7 @@ app.post('/api/admin/login', (req, res) => {
 
   if (safePasswordCompare(password, ADMIN_PASSWORD)) {
     loginAttempts.delete(ip);
-    const sessionId = uuidv4();
-    adminSessions.add(sessionId);
+    const sessionId = createAdminSession();
     res.json({ success: true, sessionId });
   } else {
     loginAttempts.set(ip, {
@@ -305,32 +389,50 @@ app.post('/api/admin/logout', (req, res) => {
 });
 
 // API: Submit order
-app.post('/api/orders', upload.single('ecuFile'), async (req, res) => {
+app.post('/api/orders', orderSubmissionLimiter, upload.single('ecuFile'), async (req, res) => {
+  // Remove the temporary upload on every rejected/failed request so invalid
+  // submissions do not leave orphaned files on disk.
+  const cleanupUpload = async () => {
+    if (req.file && req.file.path) {
+      try { await fs.remove(req.file.path); } catch (e) { /* ignore */ }
+    }
+  };
+
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'No file uploaded' });
     }
 
-    const { service, vehicleInfo, ecuReference, customerName, customerEmail, customerPhone, customServiceDescription } = req.body;
+    const body = req.body || {};
+    const service = typeof body.service === 'string' ? body.service.trim() : '';
 
     // Input hygiene: trim, strip control characters, and cap field lengths
-    const cleanVehicleInfo = sanitizeText(vehicleInfo, 500);
-    const cleanCustomerName = sanitizeText(customerName, 200);
-    const cleanCustomerEmail = sanitizeText(customerEmail, 200);
-    const cleanCustomerPhone = sanitizeText(customerPhone, 50);
-    const cleanCustomServiceDescription = sanitizeText(customServiceDescription, 1000);
+    const cleanVehicleInfo = sanitizeText(body.vehicleInfo, 500) || '';
+    const cleanCustomerName = sanitizeText(body.customerName, 200) || '';
+    const cleanCustomerEmail = sanitizeText(body.customerEmail, 200) || '';
+    const cleanCustomerPhone = sanitizeText(body.customerPhone, 50) || '';
+    const cleanCustomServiceDescription = sanitizeText(body.customServiceDescription, 1000) || '';
+    const cleanEcuReference = sanitizeText(body.ecuReference, 100) || null;
 
     if (!service || !cleanVehicleInfo) {
+      await cleanupUpload();
       return res.status(400).json({ error: 'Service and vehicle info are required' });
     }
 
     if (!ALLOWED_SERVICES.includes(service)) {
+      await cleanupUpload();
       return res.status(400).json({ error: 'Invalid service selected' });
     }
 
     // Validate custom service description if Autres is selected
     if (service === 'Autres' && !cleanCustomServiceDescription) {
+      await cleanupUpload();
       return res.status(400).json({ error: 'Autres service description is required for custom modifications' });
+    }
+
+    if (cleanCustomerEmail && !isValidEmail(cleanCustomerEmail)) {
+      await cleanupUpload();
+      return res.status(400).json({ error: 'Invalid customer email address' });
     }
 
     // If Firebase is enabled, upload file to storage and set filePath to storage path + downloadURL
@@ -344,7 +446,7 @@ app.post('/api/orders', upload.single('ecuFile'), async (req, res) => {
           filePathToStore = uploaded.path;
           fileDownloadURL = uploaded.downloadURL;
           // Optionally remove local file after upload
-          try { fs.unlinkSync(req.file.path); } catch (e) { /* ignore */ }
+          try { await fs.remove(req.file.path); } catch (e) { /* ignore */ }
         }
       } catch (e) {
         console.error('Firebase upload failed, falling back to local storage:', e);
@@ -359,7 +461,7 @@ app.post('/api/orders', upload.single('ecuFile'), async (req, res) => {
       service: service,
       customServiceDescription: cleanCustomServiceDescription || null,
       vehicleInfo: cleanVehicleInfo,
-      ecuReference: (ecuReference || '').trim().slice(0, 100) || null,
+      ecuReference: cleanEcuReference,
       customerName: cleanCustomerName || 'Anonymous',
       customerEmail: cleanCustomerEmail || '',
       customerPhone: cleanCustomerPhone || null,
@@ -374,12 +476,14 @@ app.post('/api/orders', upload.single('ecuFile'), async (req, res) => {
       customer_phone: cleanCustomerPhone || null,
       vehicle_info: cleanVehicleInfo,
       service: service,
+      ecu_reference: cleanEcuReference,
       custom_service_description: cleanCustomServiceDescription || null,
       original_file_name: req.file.originalname
     }).catch(err => console.error('Admin notification error:', err.message));
 
     res.json({ success: true, orderId: order.id, message: 'File uploaded successfully' });
   } catch (error) {
+    await cleanupUpload();
     console.error('Error creating order:', error);
     res.status(500).json({ error: 'Failed to create order' });
   }
@@ -388,8 +492,17 @@ app.post('/api/orders', upload.single('ecuFile'), async (req, res) => {
 // API: Get all orders (admin only)
 app.get('/api/orders', requireAdmin, async (req, res) => {
   try {
-    const orders = await db.getAllOrders();
-    res.json(orders);
+    const allOrders = await db.getAllOrders();
+    res.set('X-Total-Count', String(allOrders.length));
+
+    // Optional pagination: /api/orders?limit=50&offset=0
+    const limit = Number.parseInt(req.query.limit, 10);
+    const offset = Math.max(0, Number.parseInt(req.query.offset, 10) || 0);
+    if (Number.isInteger(limit) && limit > 0) {
+      return res.json(allOrders.slice(offset, offset + Math.min(limit, 500)));
+    }
+
+    res.json(allOrders);
   } catch (error) {
     console.error('Error fetching orders:', error);
     res.status(500).json({ error: 'Failed to fetch orders' });
@@ -413,7 +526,21 @@ app.get('/api/orders/:id', requireAdmin, async (req, res) => {
 // API: Update order status (admin only)
 app.put('/api/orders/:id/status', requireAdmin, async (req, res) => {
   try {
-    const { status } = req.body;
+    const status = typeof (req.body || {}).status === 'string'
+      ? req.body.status.trim()
+      : '';
+
+    if (!ORDER_STATUSES.includes(status)) {
+      return res.status(400).json({
+        error: `Invalid status. Allowed: ${ORDER_STATUSES.join(', ')}`
+      });
+    }
+
+    const order = await db.getOrder(req.params.id);
+    if (!order) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+
     await db.updateOrderStatus(req.params.id, status);
     res.json({ success: true });
   } catch (error) {
@@ -424,76 +551,87 @@ app.put('/api/orders/:id/status', requireAdmin, async (req, res) => {
 
 // API: Upload modified file (admin only)
 app.post('/api/orders/:id/modified', requireAdmin, upload.single('modifiedFile'), async (req, res) => {
+  let movedLocalFile = null;
+
   try {
     console.log('📤 Upload modified file request for order:', req.params.id);
-    
+
     if (!req.file) {
-      console.error('❌ No file in request');
       return res.status(400).json({ error: 'No file uploaded' });
     }
 
+    const orderId = Number.parseInt(req.params.id, 10);
+    if (!Number.isInteger(orderId) || orderId <= 0) {
+      await fs.remove(req.file.path).catch(() => {});
+      return res.status(400).json({ error: 'Invalid order ID' });
+    }
+
+    // Never accept a modified file for an order that does not exist.
+    const existingOrder = await db.getOrder(orderId);
+    if (!existingOrder) {
+      await fs.remove(req.file.path).catch(() => {});
+      return res.status(404).json({ error: 'Order not found' });
+    }
+
     console.log('📁 File received:', req.file.originalname, 'Size:', req.file.size);
-    console.log('📁 Temp path:', req.file.path);
 
     // Ensure modified directory exists
     await fs.ensureDir(modifiedDir);
-    console.log('📁 Modified directory ensured:', modifiedDir);
 
     // Move file to modified directory or upload to Firebase
     let modifiedFilePath = path.join(modifiedDir, req.file.filename);
     let modifiedFileDownloadURL = null;
-    
+
     if (firebaseUploadFn) {
       // upload and remove local file
       try {
-        const dest = `orders/${req.params.id}/modified/${req.file.filename}`;
+        const dest = `orders/${orderId}/modified/${req.file.filename}`;
         const uploaded = await firebaseUploadFn(req.file.path, dest);
         if (uploaded && uploaded.path) {
           modifiedFilePath = uploaded.path;
           modifiedFileDownloadURL = uploaded.downloadURL;
-          try { fs.unlinkSync(req.file.path); } catch (e) { /* ignore */ }
+          await fs.remove(req.file.path).catch(() => {});
         }
       } catch (e) {
         console.error('Firebase upload failed for modified file, falling back to local move:', e);
         await fs.move(req.file.path, modifiedFilePath, { overwrite: true });
+        movedLocalFile = modifiedFilePath;
       }
     } else {
-      console.log('📁 Moving file to:', modifiedFilePath);
       await fs.move(req.file.path, modifiedFilePath, { overwrite: true });
-      console.log('✅ File moved successfully');
+      movedLocalFile = modifiedFilePath;
     }
 
-    console.log('💾 Updating database...');
-    await db.updateOrderModifiedFile(req.params.id, {
+    await db.updateOrderModifiedFile(orderId, {
       modifiedFileName: req.file.originalname,
       modifiedStoredFileName: req.file.filename,
       modifiedFilePath: modifiedFilePath,
       modifiedFileDownloadURL: modifiedFileDownloadURL
     });
 
-    await db.updateOrderStatus(req.params.id, 'completed');
-    console.log('✅ Database updated');
+    await db.updateOrderStatus(orderId, 'completed');
 
     // Get order details for notifications
-    const order = await db.getOrder(req.params.id);
-    
+    const order = await db.getOrder(orderId);
+
     // Send email and WhatsApp notifications (non-blocking - don't fail the request)
     if (order) {
-      console.log('📧 Preparing to send modified file notification...');
-      
-      // Fire and forget - don't wait for email
       sendFileReadyNotifications(order, modifiedFilePath)
         .then(() => console.log('✅ Notifications sent successfully'))
         .catch(err => console.error('⚠️ Notification error (non-blocking):', err.message));
     }
 
-    // Return success immediately - don't wait for email
-    console.log('✅ Upload complete, returning success');
     res.json({ success: true, message: 'Modified file uploaded successfully' });
   } catch (error) {
+    // Do not leave a half-processed upload behind.
+    if (req.file && req.file.path) {
+      await fs.remove(req.file.path).catch(() => {});
+    }
+    if (movedLocalFile) {
+      await fs.remove(movedLocalFile).catch(() => {});
+    }
     console.error('❌ Error uploading modified file:', error);
-    console.error('❌ Stack:', error.stack);
-    res.status(500).json({ error: 'Failed to upload modified file: ' + error.message });
+    res.status(500).json({ error: 'Failed to upload modified file' });
   }
 });
 
@@ -513,7 +651,7 @@ app.get('/api/orders/:id/download/original', requireAdmin, async (req, res) => {
     if (!fs.existsSync(filePath)) {
       return res.status(404).json({ error: 'File not found' });
     }
-    res.download(filePath, order.original_file_name);
+    res.download(filePath, safeDownloadName(order.original_file_name));
   } catch (error) {
     console.error('Error downloading file:', error);
     res.status(500).json({ error: 'Failed to download file' });
@@ -541,7 +679,10 @@ app.get('/api/orders/:id/download/modified', requireAdmin, async (req, res) => {
       return res.status(404).json({ error: 'File not found' });
     }
 
-    res.download(filePath, order.modified_file_name || 'modified_' + order.original_file_name);
+    res.download(
+      filePath,
+      safeDownloadName(order.modified_file_name || `modified_${order.original_file_name}`)
+    );
   } catch (error) {
     console.error('Error downloading file:', error);
     res.status(500).json({ error: 'Failed to download file' });
@@ -552,15 +693,25 @@ app.get('/api/orders/:id/download/modified', requireAdmin, async (req, res) => {
 app.delete('/api/orders/:id', requireAdmin, async (req, res) => {
   try {
     const order = await db.getOrder(req.params.id);
-    if (order) {
-      // Delete files
-      if (order.file_path && fs.existsSync(order.file_path)) {
-        fs.unlinkSync(order.file_path);
-      }
-      if (order.modified_file_path && fs.existsSync(order.modified_file_path)) {
-        fs.unlinkSync(order.modified_file_path);
+    if (!order) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+
+    // Best-effort file cleanup; a missing file must not block deleting the row.
+    // Local storage paths are absolute; Firebase Storage keys are relative.
+    for (const filePath of [order.file_path, order.modified_file_path]) {
+      if (!filePath) continue;
+      try {
+        if (path.isAbsolute(filePath)) {
+          await fs.remove(filePath);
+        } else if (firebaseDeleteFn) {
+          await firebaseDeleteFn(filePath);
+        }
+      } catch (e) {
+        console.warn('Could not remove order file:', filePath, e.message);
       }
     }
+
     await db.deleteOrder(req.params.id);
     res.json({ success: true });
   } catch (error) {
@@ -585,6 +736,15 @@ app.use((err, req, res, next) => {
   if (err instanceof multer.MulterError || err.status === 400) {
     return res.status(400).json({ error: err.message });
   }
+  if (err && err.status >= 400 && err.status < 500) {
+    return res.status(err.status).json({ error: err.message });
+  }
+  if (err && err.type === 'entity.parse.failed') {
+    return res.status(400).json({ error: 'Invalid JSON body' });
+  }
+  if (err && err.type === 'entity.too.large') {
+    return res.status(413).json({ error: 'Request body too large' });
+  }
   console.error('Unhandled server error:', err && err.stack ? err.stack : err);
   res.status(500).json({ error: 'Internal server error' });
 });
@@ -592,9 +752,8 @@ app.use((err, req, res, next) => {
 // Function to send file ready notifications
 async function sendFileReadyNotifications(order, filePath) {
   console.log('📤 Sending notifications for order:', order.id);
-  console.log('📧 Customer email:', order.customer_email);
-  console.log('📱 Customer phone:', order.customer_phone);
-  console.log('📁 File path:', filePath);
+  console.log('📧 Customer email:', order.customer_email ? 'provided' : 'not provided');
+  console.log('📱 Customer phone:', order.customer_phone ? 'provided' : 'not provided');
   
   try {
     // Send email notification with file attachment
@@ -618,13 +777,25 @@ async function sendFileReadyNotifications(order, filePath) {
   }
 }
 
+// Resolve an attachment from local disk or Firebase Storage, so Firebase mode
+// sends the same attachment as the local SQLite mode.
+async function loadAttachmentBuffer(filePath) {
+  if (!filePath) return null;
+  if (await fs.pathExists(filePath)) {
+    return fs.readFile(filePath);
+  }
+  if (firebaseDownloadFn) {
+    return firebaseDownloadFn(filePath);
+  }
+  return null;
+}
+
 // Function to send email with file attachment
 async function sendEmailNotification(order, filePath) {
   try {
     console.log('📧 ========== EMAIL NOTIFICATION START ==========');
     console.log('   - Order ID:', order?.id);
-    console.log('   - Customer Email:', order?.customer_email);
-    console.log('   - File Path:', filePath);
+    console.log('   - Customer Email:', order?.customer_email ? 'provided' : 'missing');
     console.log('   - Using:', resend ? 'Resend API' : 'SMTP');
     
     if (!resend && !emailTransporter) {
@@ -645,19 +816,19 @@ async function sendEmailNotification(order, filePath) {
     const emailHtml = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #1a1a1a; color: #fff; padding: 20px; border-radius: 10px;">
         <h2 style="color: #FFD700;">🎉 Your Modified ECU File is Ready!</h2>
-        <p>Hello ${order.customer_name || 'Customer'},</p>
+        <p>Hello ${escapeHtml(order.customer_name || 'Customer')},</p>
         <p>We're pleased to inform you that your ECU file modification has been completed.</p>
         
         <div style="background: #2d2d2d; padding: 20px; border-radius: 8px; margin: 20px 0; color: #fff;">
           <h3 style="color: #FFD700; margin-top: 0;">📋 Order Details:</h3>
           <p style="color: #fff;"><strong>Order ID:</strong> #${String(order.id).padStart(3, '0')}</p>
-          <p style="color: #fff;"><strong>Service:</strong> ${serviceName}</p>
+          <p style="color: #fff;"><strong>Service:</strong> ${escapeHtml(serviceName)}</p>
           <p style="color: #fff;"><strong>Price:</strong> ${SERVICE_PRICES[serviceName] || 'On request'}</p>
           <p>Prices in EUR</p>
-          <p style="color: #fff;"><strong>Vehicle:</strong> ${vehicleInfo}</p>
+          <p style="color: #fff;"><strong>Vehicle:</strong> ${escapeHtml(vehicleInfo)}</p>
           ${order.ecu_reference ? `<p style="color: #fff;"><strong>ECU Reference:</strong> ${escapeHtml(order.ecu_reference)}</p>` : ''}
-          <p style="color: #fff;"><strong>Original File:</strong> ${originalFileName}</p>
-          <p style="color: #fff;"><strong>Modified File:</strong> ${modifiedFileName}</p>
+          <p style="color: #fff;"><strong>Original File:</strong> ${escapeHtml(originalFileName)}</p>
+          <p style="color: #fff;"><strong>Modified File:</strong> ${escapeHtml(modifiedFileName)}</p>
         </div>
 
         <p><strong style="color: #FFD700;">📥 Your modified file is attached!</strong></p>
@@ -670,25 +841,25 @@ async function sendEmailNotification(order, filePath) {
       </div>
     `;
 
-    console.log('📧 Sending email to:', order.customer_email);
+    console.log('📧 Sending email to customer:', order.customer_email ? 'address on file' : 'missing');
+
+    const attachmentContent = await loadAttachmentBuffer(filePath);
 
     // Use Resend API (preferred for Railway)
     if (resend) {
       const emailOptions = {
         from: emailFrom,
         to: [order.customer_email],
-        subject: `✅ Your Modified ECU File is Ready - Order #${String(order.id).padStart(3, '0')}`,
+        subject: sanitizeHeader(`✅ Your Modified ECU File is Ready - Order #${String(order.id).padStart(3, '0')}`),
         html: emailHtml
       };
 
-      // Add attachment if file exists
-      if (filePath && await fs.pathExists(filePath)) {
-        const fileContent = await fs.readFile(filePath);
+      if (attachmentContent) {
         emailOptions.attachments = [{
-          filename: modifiedFileName,
-          content: fileContent
+          filename: safeDownloadName(modifiedFileName),
+          content: attachmentContent
         }];
-        console.log('📎 Attaching file:', modifiedFileName, '- Size:', fileContent.length, 'bytes');
+        console.log('📎 Attaching file:', safeDownloadName(modifiedFileName), '- Size:', attachmentContent.length, 'bytes');
       }
 
       const { data, error } = await resend.emails.send(emailOptions);
@@ -705,15 +876,14 @@ async function sendEmailNotification(order, filePath) {
       const mailOptions = {
         from: `"AZ Performance" <${emailUser}>`,
         to: order.customer_email,
-        subject: `✅ Your Modified ECU File is Ready - Order #${String(order.id).padStart(3, '0')}`,
+        subject: sanitizeHeader(`✅ Your Modified ECU File is Ready - Order #${String(order.id).padStart(3, '0')}`),
         html: emailHtml
       };
 
-      // Add attachment if file exists
-      if (filePath && await fs.pathExists(filePath)) {
+      if (attachmentContent) {
         mailOptions.attachments = [{
-          filename: modifiedFileName,
-          path: filePath
+          filename: safeDownloadName(modifiedFileName),
+          content: attachmentContent
         }];
       }
 
@@ -733,7 +903,7 @@ async function sendAdminNotification(order) {
   try {
     console.log('📧 ========== ADMIN NOTIFICATION START ==========');
     console.log('   - Order ID:', order?.id);
-    console.log('   - Admin Email:', ADMIN_EMAIL || '(not set)');
+    console.log('   - Admin Email:', ADMIN_EMAIL ? 'configured' : '(not set)');
     
     if (!ADMIN_EMAIL) {
       console.log('⚠️ ADMIN_EMAIL not configured. Set ADMIN_EMAIL environment variable to receive new order notifications.');
@@ -746,7 +916,7 @@ async function sendAdminNotification(order) {
     }
 
     const orderId = String(order.id).padStart(3, '0');
-    const adminLink = `${ADMIN_URL}`;
+    const adminLink = escapeHtml(ADMIN_URL);
     
     const emailHtml = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #1a1a1a; color: #fff; padding: 20px; border-radius: 10px;">
@@ -756,16 +926,16 @@ async function sendAdminNotification(order) {
         <div style="background: #2d2d2d; padding: 20px; border-radius: 8px; margin: 20px 0;">
           <h3 style="color: #FFD700; margin-top: 0;">📋 Order Details:</h3>
           <p style="color: #fff;"><strong>Order ID:</strong> #${orderId}</p>
-          <p style="color: #fff;"><strong>Customer:</strong> ${order.customer_name || 'Anonymous'}</p>
-          <p style="color: #fff;"><strong>Email:</strong> ${order.customer_email || 'Not provided'}</p>
-          <p style="color: #fff;"><strong>Phone:</strong> ${order.customer_phone || 'Not provided'}</p>
-          <p style="color: #fff;"><strong>Vehicle:</strong> ${order.vehicle_info || 'Not specified'}</p>
+          <p style="color: #fff;"><strong>Customer:</strong> ${escapeHtml(order.customer_name || 'Anonymous')}</p>
+          <p style="color: #fff;"><strong>Email:</strong> ${escapeHtml(order.customer_email || 'Not provided')}</p>
+          <p style="color: #fff;"><strong>Phone:</strong> ${escapeHtml(order.customer_phone || 'Not provided')}</p>
+          <p style="color: #fff;"><strong>Vehicle:</strong> ${escapeHtml(order.vehicle_info || 'Not specified')}</p>
           <p style="color: #fff;"><strong>ECU Reference:</strong> ${order.ecu_reference ? escapeHtml(order.ecu_reference) : 'Not provided'}</p>
-          <p style="color: #fff;"><strong>Service:</strong> ${order.service || 'Not specified'}</p>
+          <p style="color: #fff;"><strong>Service:</strong> ${escapeHtml(order.service || 'Not specified')}</p>
           <p style="color: #fff;"><strong>Price:</strong> ${SERVICE_PRICES[order.service] || 'On request'}</p>
           <p>Prices in EUR</p>
-          ${order.custom_service_description ? `<p style="color: #fff;"><strong>Custom Request:</strong> ${order.custom_service_description}</p>` : ''}
-          <p style="color: #fff;"><strong>Original File:</strong> ${order.original_file_name || 'Unknown'}</p>
+          ${order.custom_service_description ? `<p style="color: #fff;"><strong>Custom Request:</strong> ${escapeHtml(order.custom_service_description)}</p>` : ''}
+          <p style="color: #fff;"><strong>Original File:</strong> ${escapeHtml(order.original_file_name || 'Unknown')}</p>
         </div>
 
         <div style="text-align: center; margin: 30px 0;">
@@ -781,13 +951,13 @@ async function sendAdminNotification(order) {
       </div>
     `;
 
-    console.log('📧 Sending admin notification to:', ADMIN_EMAIL);
+    console.log('📧 Sending admin notification...');
 
     if (resend) {
       const { data, error } = await resend.emails.send({
         from: emailFrom,
         to: [ADMIN_EMAIL],
-        subject: `🚀 New Order #${orderId} - ${order.customer_name || 'Anonymous'} - ${order.service || 'ECU Service'}`,
+        subject: sanitizeHeader(`🚀 New Order #${orderId} - ${order.customer_name || 'Anonymous'} - ${order.service || 'ECU Service'}`),
         html: emailHtml
       });
 
@@ -801,7 +971,7 @@ async function sendAdminNotification(order) {
       const info = await emailTransporter.sendMail({
         from: `"AZ Performance" <${emailUser}>`,
         to: ADMIN_EMAIL,
-        subject: `🚀 New Order #${orderId} - ${order.customer_name || 'Anonymous'} - ${order.service || 'ECU Service'}`,
+        subject: sanitizeHeader(`🚀 New Order #${orderId} - ${order.customer_name || 'Anonymous'} - ${order.service || 'ECU Service'}`),
         html: emailHtml
       });
 
@@ -820,16 +990,7 @@ async function sendWhatsAppNotification(order) {
   try {
     if (!twilioClient) {
       console.log('⚠️ WhatsApp not configured. Set TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN environment variables.');
-      // Fallback: Create WhatsApp link (manual sending)
-      const whatsappLink = `https://wa.me/${order.customer_phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(
-        `✅ Your ECU file modification is ready!\n\n` +
-        `Order #${String(order.id).padStart(3, '0')}\n` +
-        `Service: ${order.service}\n` +
-        `Vehicle: ${order.vehicle_info}\n\n` +
-        `Your modified file has been sent to your email: ${order.customer_email}\n\n` +
-        `Thank you for using AZ Performance!`
-      )}`;
-      console.log(`📱 WhatsApp link: ${whatsappLink}`);
+      console.log('📱 WhatsApp notification skipped.');
       return;
     }
 
@@ -846,23 +1007,28 @@ async function sendWhatsAppNotification(order) {
 
     console.log('✅ WhatsApp message sent successfully:', message.sid);
   } catch (error) {
-    console.error('❌ Error sending WhatsApp message:', error);
-    // Fallback: Create WhatsApp link
-    const whatsappLink = `https://wa.me/${order.customer_phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(
-      `✅ Your ECU file modification is ready! Order #${String(order.id).padStart(3, '0')}. Check your email for the file.`
-    )}`;
-    console.log(`📱 WhatsApp link (fallback): ${whatsappLink}`);
+    console.error('❌ Error sending WhatsApp message:', error.message);
+    console.log('📱 WhatsApp send failed; customer notification skipped.');
   }
 }
 
 // Start server
+let httpServer = null;
+
 async function startServer() {
   try {
+    // Refuse to boot a production deployment with the known development password.
+    if (isProduction && !adminPasswordFromEnv) {
+      throw new Error(
+        'ADMIN_PASSWORD must be set to a strong value when NODE_ENV=production.'
+      );
+    }
+
     // Initialize databases first
     await db.init();
     await leadStore.init();
 
-    app.listen(PORT, () => {
+    httpServer = app.listen(PORT, () => {
       const isCloud = process.env.RAILWAY_ENVIRONMENT || process.env.RENDER;
       const url = isCloud ? process.env.RAILWAY_PUBLIC_DOMAIN || process.env.RENDER_EXTERNAL_URL : `http://localhost:${PORT}`;
       
@@ -897,5 +1063,22 @@ async function startServer() {
   }
 }
 
-startServer();
+async function shutdown(signal) {
+  console.log(`\n${signal} received — shutting down...`);
+  if (httpServer) {
+    await new Promise((resolve) => httpServer.close(resolve));
+  }
+  if (typeof db.close === 'function') {
+    await db.close().catch(() => {});
+  }
+  process.exit(0);
+}
 
+if (require.main === module) {
+  startServer();
+
+  process.on('SIGINT', () => shutdown('SIGINT'));
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
+}
+
+module.exports = { app, startServer };

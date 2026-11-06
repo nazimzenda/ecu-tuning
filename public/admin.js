@@ -109,7 +109,7 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error('Login error:', error);
             let errorMsg = 'Network error. ';
             if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
-                errorMsg += 'Cannot connect to server. Please make sure the server is running on http://localhost:3000';
+                errorMsg += 'Cannot connect to the API server. Please check that it is running.';
             } else {
                 errorMsg += error.message + '. Please check if server is running.';
             }
@@ -371,13 +371,48 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Global functions for order actions
-    window.downloadOriginal = (orderId) => {
-        window.open(`${API_BASE_URL}/api/orders/${orderId}/download/original?session=${adminSessionId}`, '_blank');
-    };
+    // Download through fetch with the admin header instead of putting the
+    // session token in the URL (where it would leak into logs/history).
+    async function downloadWithSession(orderId, kind) {
+        const order = orders.find((entry) => entry.id === orderId);
+        const fallbackName = kind === 'original'
+            ? (order && order.original_file_name) || 'ecu-original.bin'
+            : (order && order.modified_file_name) || 'ecu-modified.bin';
 
-    window.downloadModified = (orderId) => {
-        window.open(`${API_BASE_URL}/api/orders/${orderId}/download/modified?session=${adminSessionId}`, '_blank');
-    };
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/orders/${orderId}/download/${kind}`, {
+                headers: { 'x-admin-session': adminSessionId }
+            });
+
+            if (response.status === 401) {
+                adminSessionId = null;
+                localStorage.removeItem('adminSessionId');
+                showLoginScreen();
+                return;
+            }
+            if (!response.ok) {
+                alert('File is not available yet.');
+                return;
+            }
+
+            const blob = await response.blob();
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = fallbackName;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+        } catch (error) {
+            console.error('Download error:', error);
+            alert('Download failed. Please try again.');
+        }
+    }
+
+    window.downloadOriginal = (orderId) => downloadWithSession(Number(orderId), 'original');
+
+    window.downloadModified = (orderId) => downloadWithSession(Number(orderId), 'modified');
 
     window.updateStatus = async (orderId, status) => {
         try {

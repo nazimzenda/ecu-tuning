@@ -1,5 +1,10 @@
 # Tools & Technologies — ECU Tuning Service
 
+> **Historical snapshot (2026-11-05).** v2.1.0 (2026-11-06) upgraded the stack
+> to Node 22, multer 2, sqlite3 6, firebase-admin 14, nodemailer 10, Helmet,
+> express-rate-limit and dotenv; added 14 tests and CI; `npm audit` reports 0
+> vulnerabilities. See `README.md` and `PROJECT_HANDOFF.md` for current state.
+
 > Verified against code (audit 2026-11-05). Status legend: **installed** = in node_modules · **declared** = referenced in config/code but not functional · **configured** = config present · **running** = verified working at runtime. Nothing is currently running on the host (audit was static).
 
 ## Master table

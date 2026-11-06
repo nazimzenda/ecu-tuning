@@ -1,2 +1,1 @@
-web: node server.js & node client-server.js & node admin-server.js
-
+web: node scripts/start-all.js

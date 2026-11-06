@@ -12,7 +12,7 @@ A complete, production-ready web application for professional ECU tuning service
 
 ### 🎯 Client Portal (Port 3000)
 - **Multi-Format Support**: Upload `.bin`, `.hex`, `.ori`, `.winols`, `.dam` files (up to 50MB)
-- **7 Professional Services**: DPF Delete, EGR Delete, DTC Removal, AdBlue/SCR Delete, VMAX Remove, Stage 1 Tune, Custom
+- **12 Professional Services**: Stage 1, E85, FAP, EGR, FAP+EGR, AdBlue, Utilitaire, Immo Off, Fault Research, Diagnostic, DTC Off, Custom
 - **Vehicle Information**: Capture make, model, year, engine specs
 - **Smart Notifications**: Email notifications when files are ready (with file attachment!)
 - **Order Tracking**: Get order ID instantly after upload
@@ -65,21 +65,17 @@ The research workspace is deliberately limited to **lawful ECU calibration, diag
 
 ## 🚀 Quick Start
 
-### Option 1: One-Command Start (Recommended)
-```powershell
-.\scripts\start-clean.ps1
+### Option 1: One-Command Start (Recommended, all platforms)
+```bash
+cp .env.example .env    # then set ADMIN_PASSWORD
+npm install
+npm run start:all       # API + client + admin, Ctrl+C stops all three
 ```
-This stops any running services, checks ports, and starts all three servers + Firebase emulators in separate windows.
+`npm run start:all` is the cross-platform launcher. On Windows you can still use
+`.\scripts\start-clean.ps1`, which additionally checks ports and opens separate windows.
 
 ### Option 2: Manual Start
-```powershell
-# 1. Stop any running services
-.\scripts\stop-all.ps1
-
-# 2. Check ports are free
-.\scripts\check-ports.ps1
-
-# 3. Start servers individually
+```bash
 npm run start:api      # Port 4000
 npm run start:client   # Port 3000
 npm run start:admin    # Port 3001
@@ -87,14 +83,17 @@ npm run start:admin    # Port 3001
 
 ### Access Your Application
 - **Client Portal**: http://localhost:3000
-- **Admin Panel**: http://localhost:3001 (password: `admin123`)
+- **Admin Panel**: http://localhost:3001 (password = `ADMIN_PASSWORD` from `.env`)
 - **API Health**: http://localhost:4000
+
+> The fallback password `admin123` is for local development only. With
+> `NODE_ENV=production` the API refuses to start unless `ADMIN_PASSWORD` is set.
 
 ---
 
 ## 📦 Installation
 
-```powershell
+```bash
 # Clone repository
 git clone https://github.com/nazimzenda/ecu-tuning.git
 cd ecu-tuning
@@ -102,17 +101,15 @@ cd ecu-tuning
 # Install dependencies
 npm install
 
-# Create .env file (optional)
-@"
-USE_FIREBASE=0
-ADMIN_PASSWORD=admin123
-API_PORT=4000
-CLIENT_PORT=3000
-ADMIN_PORT=3001
-"@ | Out-File -FilePath .env -Encoding utf8
+# Create your local environment file and set a real admin password
+cp .env.example .env
 
-# Start application
-.\scripts\start-clean.ps1
+# Verify the code and run the test suite
+npm run check
+npm test
+
+# Start all three servers
+npm run start:all
 ```
 
 ---
@@ -199,12 +196,12 @@ myapp/
 |--------|----------|-------------|---------------|
 | `POST` | `/api/orders` | Create new order (upload ECU file) | No |
 | `GET` | `/api/orders` | Get all orders | Admin |
-| `GET` | `/api/orders/:id` | Get single order details | No |
+| `GET` | `/api/orders/:id` | Get single order details | Admin |
 | `PUT` | `/api/orders/:id/status` | Update order status | Admin |
 | `POST` | `/api/orders/:id/modified` | Upload modified file | Admin |
 | `DELETE` | `/api/orders/:id` | Delete order | Admin |
 
-### Downloads
+### Downloads (Admin)
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | `GET` | `/api/orders/:id/download/original` | Download original ECU file |
@@ -233,13 +230,18 @@ myapp/
 
 ## 🎯 Available ECU Tuning Services
 
-1. **DPF/FPF Delete** - Remove diesel/petrol particulate filter, eliminate regeneration issues
-2. **EGR Delete** - Disable exhaust gas recirculation, improve airflow & performance
-3. **DTC Removal** - Delete diagnostic trouble codes (P-codes, engine lights)
-4. **AdBlue/SCR Delete** - Remove urea injection system, eliminate DEF fluid requirements
-5. **VMAX Remove** - Delete speed limiter, unlock maximum vehicle speed
-6. **Stage 1 Tune** - Performance upgrade: +15-30% power/torque, optimize fuel maps
-7. **Custom Service** - Specify custom modifications (launch control, pop & bang, etc.)
+1. **Stage 1** - Performance calibration: improved power/torque with optimized fuel maps
+2. **E85** - Flex-fuel conversion calibration
+3. **FAP** - Particulate filter service solution
+4. **EGR** - Exhaust gas recirculation service solution
+5. **FAP + EGR** - Combined service package
+6. **AdBlue** - SCR/AdBlue service solution
+7. **Utilitaire** - FAP + EGR + AdBlue package for commercial vehicles
+8. **Immo Off** - Immobiliser-off service
+9. **Recherche** - Fault research (from 50 EUR)
+10. **Diagnostic** - Diagnostic service (40 EUR)
+11. **DTC Off** - Diagnostic trouble code service (40 EUR)
+12. **Autres** - Custom request with a required description
 
 ---
 
@@ -341,6 +343,15 @@ TWILIO_WHATSAPP_FROM=whatsapp:+14155238886
 .\scripts\backup-before-migrate.ps1
 ```
 
+### Tests and checks
+```bash
+npm run check   # syntax-check every server, database module and Worker
+npm test        # 14 integration tests (isolated temp database + uploads)
+```
+The test suite covers health, security headers, CORS, admin login/auth,
+order validation/cleanup, status transitions, modified-file uploads,
+downloads, deletion and the lead-workspace guard.
+
 ### Firebase Emulators (Local Testing)
 ```powershell
 # Start emulators
@@ -375,15 +386,18 @@ railway up
 ```
 
 ### Docker
-```powershell
+```bash
 # Build image
 docker build -t ecu-tuning-service .
 
-# Run container
-docker run -p 4000:4000 -p 3000:3000 -p 3001:3001 ecu-tuning-service
+# Run container (nginx listens on 8080)
+docker run -p 8080:8080 \
+  -e ADMIN_PASSWORD='a-strong-password' \
+  -v ecu-data:/app/data \
+  ecu-tuning-service
 
-# Or use Docker Compose
-docker-compose up
+# Or use Docker Compose (requires ADMIN_PASSWORD in .env or the shell)
+ADMIN_PASSWORD='a-strong-password' docker compose up
 ```
 
 ### Render / Heroku
@@ -400,48 +414,63 @@ See **DEPLOYMENT.md** for detailed cloud deployment instructions.
 - ✅ **File Validation**: Only `.bin`, `.hex`, `.ori`, `.winols`, `.dam` allowed
 - ✅ **Size Limits**: 50MB max upload size (configurable)
 - ✅ **SQL Injection Prevention**: Parameterized queries throughout
-- ✅ **Admin Authentication**: Session-based login with password
-- ✅ **Input Sanitization**: Email/phone validation, trimmed inputs
-- ✅ **CORS Protection**: Configured for specific origins
-- ✅ **Path Traversal Prevention**: Validated file paths
+- ✅ **Admin Authentication**: Session login with 12-hour sliding expiry and brute-force limiting
+- ✅ **Input Sanitization**: Email validation, trimmed/capped inputs, HTML-escaped emails
+- ✅ **Rate Limiting**: Public order submissions are limited per IP
+- ✅ **Security Headers**: Helmet (nosniff, frame protection, referrer policy, HSTS in production)
+- ✅ **CORS Protection**: Localhost-only in development, explicit allowlist in production
+- ✅ **Path Traversal Prevention**: Generated storage names, sanitized download filenames
+- ✅ **Dependency Audit**: `npm audit` reports 0 vulnerabilities
+- ✅ **Automated Tests**: 14 API/database integration tests via `npm test`
 
 ### Production Security Recommendations
-- [ ] Use HTTPS (SSL/TLS certificates)
-- [ ] Add rate limiting (express-rate-limit)
+- [ ] Use HTTPS (terminate TLS at your reverse proxy)
 - [ ] Implement virus scanning (ClamAV)
-- [ ] Use strong admin passwords (environment variable)
 - [ ] Enable Firebase security rules (if using Firestore)
-- [ ] Add CSP headers (Content Security Policy)
-- [ ] Implement request logging
-- [ ] Set up monitoring/alerts
+- [ ] Add request logging / monitoring alerts
+- [ ] Back up `database.sqlite` and the `uploads/` directory
 
 ---
 
 ## 📝 Environment Variables
 
-Create `.env` file in project root:
+Copy `.env.example` to `.env` and set the values you need. The servers load it
+automatically with `dotenv` (shell-exported variables still take priority).
 
 ```env
-# Firebase
+# Persistence
 USE_FIREBASE=0                    # 0=SQLite, 1=Firestore
+DATA_DIR=                         # set to /app/data on Railway
 
-# Server Ports
+# Server ports
 API_PORT=4000
 CLIENT_PORT=3000
 ADMIN_PORT=3001
 
-# Admin Authentication
-ADMIN_PASSWORD=admin123           # Change in production!
+# Admin authentication (required in production)
+ADMIN_PASSWORD=change-me
+ADMIN_SESSION_TTL_MS=43200000     # 12 hours
 
-# Email Notifications
-EMAIL_SERVICE=gmail
-EMAIL_USER=your-email@gmail.com
-EMAIL_PASSWORD=your-app-password
+# API origins (leave empty when nginx serves UI + /api on one origin)
+CLIENT_API_BASE_URL=
+ADMIN_API_BASE_URL=
+ALLOWED_ORIGINS=                  # e.g. https://app.example.com,https://admin.example.com
 
-# WhatsApp Notifications (Twilio)
+# Email notifications
+RESEND_API_KEY=
+EMAIL_FROM="AZ Performance <onboarding@resend.dev>"
+ADMIN_EMAIL=admin@yourdomain.com
+
+# SMTP fallback (local development)
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your-email@gmail.com
+SMTP_PASS=your-app-password
+
+# WhatsApp notifications (Twilio)
 TWILIO_ACCOUNT_SID=ACxxxx...
 TWILIO_AUTH_TOKEN=your-token
-TWILIO_WHATSAPP_FROM=whatsapp:+14155238886
+TWILIO_WHATSAPP_NUMBER=whatsapp:+14155238886
 
 # Lead research (public data providers use this contact in the User-Agent)
 LEAD_RESEARCH_CONTACT=ops@yourdomain.com
@@ -513,7 +542,13 @@ Click **"🔍 View Full Details"** on any order to see:
 
 ---
 
-## 📢 Latest Updates (2025-12-07)
+## 📢 Latest Updates (2026-11-06)
+- **Security:** rate limiting, Helmet headers, admin session expiry, production password guard, HTML-escaped notification emails.
+- **Reliability:** fixed orphaned uploads, missing-order uploads, arbitrary status values and missing SQLite download-URL columns.
+- **Deployment:** Node 22 images, correct same-origin production defaults, CI deploy jobs skip cleanly when secrets/config are absent.
+- **Quality:** upgrade to multer 2 / sqlite3 6 / firebase-admin 14; `npm audit` is clean; 14 integration tests added.
+
+## 📢 Earlier updates (2025-12-07)
 - Admin panel: added search bar (name/email/vehicle/service) and clickable status cards; upload modified modal fixed.
 - Styling: premium background applied across client/admin; cursor/hover tweaks on stat cards.
 - Deployment docs: merged deployment guides into `DEPLOYMENT.md`; removed `FREE_DEPLOYMENT_GUIDE.md` and `IMAGE_SETUP.md`; quick start now lives in `MAINTENANCE.md` (replaces `QUICK_START.md`).
@@ -551,6 +586,7 @@ ISC License - See LICENSE file for details
 
 Built with Node.js, Express, SQLite, Firebase, and modern web technologies.
 
-**Version**: 2.0.0  
-**Last Updated**: December 7, 2025
+**Version**: 2.1.0
+
+**Last Updated**: November 6, 2026
 

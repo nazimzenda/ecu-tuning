@@ -1,5 +1,10 @@
 # Dependencies & Requirements — ECU Tuning Service
 
+> **Historical snapshot (2026-11-05).** v2.1.0 (2026-11-06) upgraded the stack
+> to Node 22, multer 2, sqlite3 6, firebase-admin 14, nodemailer 10, Helmet,
+> express-rate-limit and dotenv; `npm audit` now reports 0 vulnerabilities.
+> See `README.md` and `PROJECT_HANDOFF.md` for the current state.
+
 > Verified against code/lockfile (audit 2026-11-05). Versions = installed (lockfile); "declared" range in parentheses where different.
 
 ## 1. Component dependency table

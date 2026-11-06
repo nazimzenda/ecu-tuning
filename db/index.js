@@ -1,9 +1,13 @@
-// Adapter loader: chooses SQLite (existing) or Firestore adapter based on USE_FIREBASE env var
-// Only use Firebase if explicitly set to 'true' or '1' AND we have the required credentials
-const useFirebaseEnv = process.env.USE_FIREBASE === 'true' || process.env.USE_FIREBASE === '1';
-const hasFirebaseCredentials = !!(process.env.GOOGLE_SERVICE_ACCOUNT_JSON || process.env.FIREBASE_STORAGE_BUCKET);
+// Adapter loader: chooses SQLite (existing) or Firestore adapter based on USE_FIREBASE.
+// Firebase is only enabled when the flag is set AND both required credentials
+// are present. server.js uses exactly the same decision, so the storage helper
+// and the database always switch together.
+require('../load-env');
 
-// Only enable Firebase if both the flag is set AND credentials are provided
+const useFirebaseEnv = process.env.USE_FIREBASE === 'true' || process.env.USE_FIREBASE === '1';
+const hasFirebaseCredentials = !!(
+  process.env.GOOGLE_SERVICE_ACCOUNT_JSON && process.env.FIREBASE_STORAGE_BUCKET
+);
 const useFirebase = useFirebaseEnv && hasFirebaseCredentials;
 
 let adapter;

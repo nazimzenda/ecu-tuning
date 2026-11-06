@@ -35,7 +35,9 @@ Local developer workflows
 
 Project-specific conventions
 - DB naming: persisted column names use snake_case; JS code maps to camelCase. Add DB changes via `database.js` helpers and follow its runtime migration patterns.
-- Admin auth: in-memory session set. Login returns `sessionId` — include as `x-admin-session` header or `?session=` query param for admin routes.
+- Admin auth: in-memory session map with 12-hour sliding expiry (`ADMIN_SESSION_TTL_MS`). Login returns `sessionId` — include as `x-admin-session` header or `?session=` query param for admin routes.
+- Env loading: `load-env.js` loads `.env` with dotenv; every entrypoint requires it first.
+- Tests: `npm test` (Node test runner + supertest) and `npm run check` (syntax). Both run in CI.
 - File upload validation: `server.js` enforces allowed extensions (`.bin,.hex,.ori,.winols,.dam`) and 50MB limit via `multer`. Update this list when supporting new formats.
 - Client forms: `public/app.js` intentionally uses `FormData(form)` then `formData.set('customServiceDescription', ...)` to ensure trimmed value replaces any captured value (avoid duplicated fields).
 

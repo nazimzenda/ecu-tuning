@@ -1,5 +1,14 @@
 # PROJECT TECHNICAL AUDIT REPORT — ECU Tuning Service
 
+> **Remediation note (2026-11-06, v2.1.0):** the P0/P1 items in this report have
+> been addressed: production password fail-closed + login/upload rate limiting,
+> escaped admin rendering, generated upload filenames, compose API URLs, JSON
+> error middleware, Helmet headers + CORS allowlist, expiring sessions,
+> download tokens removed from URLs, Firebase adapter parity fixes, Node 22,
+> clean `npm audit`, 14 integration tests and a CI pipeline. Remaining items are
+> listed in `PROJECT_HANDOFF.md` §8. This document is retained as the original
+> audit record.
+
 **Date:** 2026-11-05 · **Repo:** `/home/zenda/ecu-tuning` (git master @ `49f2037`, remote origin/master)
 **Method:** read-only inspection. No project file was modified during this audit. Evidence gathered via: full codebase mapping, dependency/CVE research (npm audit), infrastructure static validation, backend/frontend deep review, security audit, non-mutating test validation, and a sandboxed live smoke test (disposable copy under `/tmp/opencode`).
 

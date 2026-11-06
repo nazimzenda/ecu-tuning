@@ -1,19 +1,25 @@
 {
   "name": "ecu-tuning-service",
-  "version": "1.0.0",
+  "version": "2.1.0",
   "description": "ECU File Modification Service Platform",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
+    "start:all": "node scripts/start-all.js",
     "start:api": "node server.js",
     "start:client": "node client-server.js",
     "start:admin": "node admin-server.js",
-    "dev": "nodemon server.js",
+    "dev": "node --watch server.js",
+    "test": "node --test tests",
+    "check": "node --check server.js && node --check client-server.js && node --check admin-server.js && node --check database.js && node --check db/index.js && node --check db/firestore-adapter.js && node --check load-env.js && node --check security.js && node --check workers/src/index.js",
     "emulators": "firebase emulators:start --config firebase.emulators.json --only functions,firestore,auth",
     "migrate:firestore": "node migration/migrate-sqlite-to-firestore.js",
     "leads:seed": "node leads/seed.js",
     "leads:research": "node leads/cli.js",
     "leads:test": "node leads/test.js"
+  },
+  "engines": {
+    "node": ">=20"
   },
   "keywords": [
     "ecu",
@@ -23,20 +29,21 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "compression": "^1.8.1",
-    "cors": "^2.8.5",
-    "express": "^4.18.2",
-    "firebase-admin": "^13.6.0",
-    "fs-extra": "^11.1.1",
-    "multer": "^1.4.5-lts.1",
-    "nodemailer": "^7.0.10",
-    "path": "^0.12.7",
-    "resend": "^6.5.2",
-    "sqlite3": "^5.1.6",
-    "twilio": "^4.19.0",
-    "uuid": "^9.0.1"
+    "compression": "^1.8.2",
+    "cors": "^2.8.6",
+    "dotenv": "^18.0.9",
+    "express": "^4.22.3",
+    "express-rate-limit": "^8.7.3",
+    "firebase-admin": "^14.5.0",
+    "fs-extra": "^11.4.1",
+    "helmet": "^8.3.0",
+    "multer": "^2.5.0",
+    "nodemailer": "^10.3.1",
+    "resend": "^6.37.0",
+    "sqlite3": "^6.0.1",
+    "twilio": "^4.23.0"
   },
   "devDependencies": {
-    "nodemon": "^3.0.1"
+    "supertest": "^7.3.1"
   }
 }

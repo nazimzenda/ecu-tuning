@@ -69,7 +69,7 @@ Get-Process node -ErrorAction SilentlyContinue | Stop-Process -Force
 ```
 
 **Environment variables**
-- `ADMIN_PASSWORD` — default `admin123` (change for production)
+- `ADMIN_PASSWORD` — required in production; development-only fallback is `admin123`
 - `API_PORT` — port for API (default `4000`)
 - `CLIENT_PORT` — client UI (default `3000`)
 - `ADMIN_PORT` — admin UI (default `3001`)

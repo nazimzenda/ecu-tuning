@@ -2,39 +2,44 @@ const admin = require('firebase-admin');
 const fs = require('fs');
 
 function initFirebase() {
-  if (admin.apps && admin.apps.length) return admin;
+  const storageBucket = process.env.FIREBASE_STORAGE_BUCKET || undefined;
 
-  let serviceAccount;
-  if (process.env.GOOGLE_SERVICE_ACCOUNT_JSON) {
-    try {
-      serviceAccount = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
-    } catch (e) {
-      console.error('ERROR: Invalid JSON in GOOGLE_SERVICE_ACCOUNT_JSON');
-      throw e;
-    }
-  } else if (fs.existsSync('./service-account.json')) {
-    serviceAccount = require('./service-account.json');
-  }
+  // Reuse an existing app instead of calling initializeApp twice.
+  const app = (admin.apps && admin.apps.length)
+    ? admin.apps[0]
+    : (() => {
+        let serviceAccount;
+        if (process.env.GOOGLE_SERVICE_ACCOUNT_JSON) {
+          try {
+            serviceAccount = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
+          } catch (e) {
+            console.error('ERROR: Invalid JSON in GOOGLE_SERVICE_ACCOUNT_JSON');
+            throw e;
+          }
+        } else if (fs.existsSync('./service-account.json')) {
+          serviceAccount = require('./service-account.json');
+        }
 
-  const initOptions = {};
-  if (serviceAccount) {
-    initOptions.credential = admin.credential.cert(serviceAccount);
-  } else {
-    // Fall back to application default credentials if available
-    console.warn('⚠️ Firebase service account not provided; attempting application default credentials');
-    initOptions.credential = admin.credential.applicationDefault();
-  }
+        const initOptions = {};
+        if (serviceAccount) {
+          initOptions.credential = admin.credential.cert(serviceAccount);
+        } else {
+          // Fall back to application default credentials if available
+          console.warn('⚠️ Firebase service account not provided; attempting application default credentials');
+          initOptions.credential = admin.credential.applicationDefault();
+        }
 
-  if (process.env.FIREBASE_STORAGE_BUCKET) {
-    initOptions.storageBucket = process.env.FIREBASE_STORAGE_BUCKET;
-  }
+        if (storageBucket) {
+          initOptions.storageBucket = storageBucket;
+        }
 
-  admin.initializeApp(initOptions);
+        return admin.initializeApp(initOptions);
+      })();
 
   const db = admin.firestore();
-  const bucket = admin.storage().bucket(process.env.FIREBASE_STORAGE_BUCKET);
+  const bucket = storageBucket ? admin.storage().bucket(storageBucket) : null;
 
-  return { admin, db, bucket };
+  return { admin, app, db, bucket };
 }
 
 module.exports = initFirebase;

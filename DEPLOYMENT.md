@@ -12,7 +12,7 @@
 - Optimized with gzip compression, caching, and reduced animations.
 
 **Admin (http://localhost:3001)**
-- Password login (`admin123` — change for prod), dashboard stats, click-to-filter status cards, search by name/email/vehicle/service, detailed modal (status, vehicle, service, customer, files, timeline), download/upload files, status changes, delete orders.
+- Password login (`ADMIN_PASSWORD`; required in production), dashboard stats, click-to-filter status cards, search by name/email/vehicle/service, detailed modal (status, vehicle, service, customer, files, timeline), download/upload files, status changes, delete orders.
 - Admin receives email alerts for new orders with direct link to admin panel.
 
 **API (http://localhost:4000)**
@@ -34,7 +34,7 @@
 
 # Access
 # Client: http://localhost:3000
-# Admin:  http://localhost:3001 (password: admin123)
+# Admin:  http://localhost:3001 (password: ADMIN_PASSWORD from .env)
 # API:    http://localhost:4000
 
 # Stop all servers
@@ -46,7 +46,7 @@
 ## Deployment Options
 
 1) **Railway (recommended)** — connect repo, set env vars, deploy.
-2) **Docker** — `docker-compose up -d`.
+2) **Docker** — set `ADMIN_PASSWORD` in `.env`, then `docker compose up -d`.
 3) **Node direct** — `npm run start:api`, `npm run start:client`, `npm run start:admin`.
 
 ---

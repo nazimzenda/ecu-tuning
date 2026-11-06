@@ -1,17 +1,14 @@
-# Use Node.js LTS version
-FROM node:18-alpine
+# Node.js 22 LTS (Node 18 reached end-of-life in April 2025)
+FROM node:22-alpine
 
-# Set working directory
 WORKDIR /app
 
 # Install Nginx and tini (PID 1 init for signal forwarding and zombie reaping)
 RUN apk add --no-cache nginx tini
 
-# Copy package files
+# Install production dependencies only
 COPY package*.json ./
-
-# Install dependencies
-RUN npm ci --only=production
+RUN npm ci --omit=dev
 
 # Copy application files
 COPY . .
@@ -19,35 +16,22 @@ COPY . .
 # Copy Nginx configuration
 COPY nginx.conf /etc/nginx/nginx.conf
 
-# Create uploads directories (for ephemeral storage fallback)
-RUN mkdir -p uploads/modified
-
-# Create data directory for Railway Volume mount
-# When Railway Volume is attached, it mounts to /app/data
-# and this directory will be replaced with persistent storage
-RUN mkdir -p /app/data/uploads/modified
-
-# Create Nginx run directory
-RUN mkdir -p /run/nginx
+# Create uploads directories (ephemeral fallback) and the Railway volume path
+RUN mkdir -p uploads/modified /app/data/uploads/modified /run/nginx
 
 # Expose port 8080 for Railway (Nginx reverse proxy)
 EXPOSE 8080
 
-# Set environment to production
 ENV NODE_ENV=production
 ENV PORT=8080
 
-# Run tini as PID 1 so signals reach the shell and zombie processes are reaped
+# Run tini as PID 1 so signals reach the Node process and zombies are reaped.
 ENTRYPOINT ["/sbin/tini", "--"]
 
-# NOTE: intentionally no USER directive - the container runs as root because
-# nginx needs root to bind ports and manage its worker processes. All Node
-# processes are reaped by tini (PID 1) above.
+# nginx daemonizes, then scripts/start-all.js supervises the three Node servers
+# and exits the container if any of them dies (instead of silently serving 502s).
+CMD ["sh", "-c", "nginx -t && nginx && exec node scripts/start-all.js"]
 
-# Start Nginx and all three Node servers with error output
-CMD sh -c "nginx -t && nginx && sleep 2 && node server.js & node client-server.js & node admin-server.js & wait"
-
-# Nginx must answer on 8080 for the container to be healthy
+# Both the API process and nginx must answer for the container to be healthy
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-  CMD wget -q --spider http://localhost:8080/ || exit 1
-
+  CMD wget -q --spider http://localhost:4000/ && wget -q --spider http://localhost:8080/healthz || exit 1

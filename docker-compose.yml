@@ -3,7 +3,7 @@ services:
   # Fixes INFRA-007 - a fresh clone previously bind-mounted ./database.sqlite,
   # which Docker created as a directory when missing, breaking DB init.
   init:
-    image: node:18-alpine
+    image: node:22-alpine
     container_name: ecu-tuning-init
     command: sh -c "mkdir -p /data/uploads/modified && touch /data/database.sqlite"
     volumes:
@@ -20,7 +20,7 @@ services:
       - NODE_ENV=production
       - API_PORT=4000
       - DATA_DIR=/data
-      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin123}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:?ADMIN_PASSWORD must be set in .env or the shell}
       - SMTP_HOST=${SMTP_HOST:-smtp.gmail.com}
       - SMTP_PORT=${SMTP_PORT:-587}
       - SMTP_SECURE=${SMTP_SECURE:-false}
@@ -29,7 +29,7 @@ services:
       - TWILIO_ACCOUNT_SID=${TWILIO_ACCOUNT_SID:-}
       - TWILIO_AUTH_TOKEN=${TWILIO_AUTH_TOKEN:-}
       - TWILIO_WHATSAPP_NUMBER=${TWILIO_WHATSAPP_NUMBER:-whatsapp:+14155238886}
-      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-*}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:3001}
     volumes:
       - ecu-data:/data
     depends_on:
