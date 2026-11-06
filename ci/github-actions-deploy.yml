@@ -1,0 +1,118 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+# Prevent overlapping deployments to the same environment.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build-test:
+    name: Build and test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Syntax check
+        run: npm run check
+
+      - name: Run tests
+        run: npm test
+
+  detect-deploy:
+    name: Detect deployment configuration
+    needs: build-test
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    outputs:
+      cloudflare: ${{ steps.check.outputs.cloudflare }}
+      pages: ${{ steps.check.outputs.pages }}
+      workers: ${{ steps.check.outputs.workers }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check secrets and configuration
+        id: check
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLIENT_API_BASE_URL: ${{ vars.CLIENT_API_BASE_URL }}
+        run: |
+          if [ -n "$CLOUDFLARE_API_TOKEN" ] && [ -n "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "cloudflare=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "cloudflare=false" >> "$GITHUB_OUTPUT"
+            echo "Cloudflare secrets are not configured - deployment will be skipped."
+          fi
+
+          if [ -n "$CLIENT_API_BASE_URL" ]; then
+            echo "pages=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "pages=false" >> "$GITHUB_OUTPUT"
+            echo "Repository variable CLIENT_API_BASE_URL is not set - Pages deployment will be skipped (the UI needs an API origin)."
+          fi
+
+          if grep -Eq 'database_id[[:space:]]*=[[:space:]]*"[^"]+"' workers/wrangler.toml; then
+            echo "workers=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "workers=false" >> "$GITHUB_OUTPUT"
+            echo "workers/wrangler.toml has no D1 database_id - Workers deployment will be skipped."
+          fi
+
+  deploy-pages:
+    name: Deploy client to Cloudflare Pages
+    needs: [build-test, detect-deploy]
+    if: needs.detect-deploy.outputs.cloudflare == 'true' && needs.detect-deploy.outputs.pages == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Write runtime API configuration
+        env:
+          CLIENT_API_BASE_URL: ${{ vars.CLIENT_API_BASE_URL }}
+        run: |
+          node -e 'const fs=require("fs");fs.writeFileSync("public/config.js",`window.API_BASE_URL = ${JSON.stringify(process.env.CLIENT_API_BASE_URL)};\n`)'
+
+      - name: Publish to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy public --project-name=ecu-tuning-ui
+
+  deploy-workers:
+    name: Deploy Cloudflare Workers
+    needs: [build-test, detect-deploy]
+    if: needs.detect-deploy.outputs.cloudflare == 'true' && needs.detect-deploy.outputs.workers == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Deploy Workers
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: workers
+          command: deploy
